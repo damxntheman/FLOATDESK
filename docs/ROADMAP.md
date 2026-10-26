@@ -25,6 +25,7 @@
 - [x] Mac-only **research click agent** implemented in Swift source; compile, Accessibility permission and real device tests pending.
 - [x] Request/approve/revoke workflow and 2-minute grant implemented; **not yet physically accepted**.
 - [x] Full-view iPhone taps converted to bounded mouse-click coordinates; automated tests cover mapping and grant policy.
+- [x] Auto-open immersive iPhone desktop viewer on touch grant, with an always-visible **Exit & revoke** action and manual Expand desktop. Physical iPhone landscape/portrait verification pending; iPhone Safari does not guarantee arbitrary-element OS-level fullscreen.
 - [ ] Native agent compilation and successful Mac+iPhone click; confirm denial before approval and immediate revocation.
 - [ ] Scrolling, right-click, dragging, typing, keyboard, auditable event trail and app signing.
 - [ ] Stronger authentication, protocol replay protection and production security audit.

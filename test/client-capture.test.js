@@ -20,7 +20,7 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
     click() { return this.listeners.get('click')?.(); },
     play() { return Promise.resolve(); }
   });
-  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode', 'touchPad', 'controlStatus', 'approveControl', 'revokeControl', 'requestControl', 'releaseControl']) {
+  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode', 'touchPad', 'controlStatus', 'approveControl', 'revokeControl', 'requestControl', 'releaseControl', 'expandView', 'exitView', 'immersiveToolbar']) {
     elements.set(id, makeElement());
   }
   const saved = new Map();
@@ -53,7 +53,11 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
   let selection = 0;
   const nextCapture = () => Promise.resolve(streams[selection++]);
   const defined = {
-    document: { getElementById: (id) => elements.get(id), addEventListener() {} },
+    document: {
+      getElementById: (id) => elements.get(id),
+      addEventListener() {},
+      body: { classList: { toggle() {} } }
+    },
     window: { addEventListener() {} },
     location: { protocol: 'https:', host: 'localhost:8788' },
     navigator: { mediaDevices: { getDisplayMedia: nextCapture } },
