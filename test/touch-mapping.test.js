@@ -10,10 +10,10 @@ test('normalizes taps on a full-size desktop video', () => {
 });
 test('rejects letterbox taps and maps actual picture bounds', () => {
   const v=video(1600,1000,{left:0,top:0,width:1600,height:900});
-  assert.equal(normalizedVideoPoint(v,100,1),null);
+  assert.equal(normalizedVideoPoint(v,1,450),null);
   const p=normalizedVideoPoint(v,800,450);
   assert.deepEqual(p,{x:.5,y:.5});
-  assert.equal(normalizedVideoPoint(v,800,899),null);
+  assert.equal(normalizedVideoPoint(v,1599,450),null);
 });
 test('rejects invalid or not-yet-initialized video geometry', () => {
   assert.equal(normalizedVideoPoint(video(0,0,{left:0,top:0,width:100,height:100}),25,25),null);
