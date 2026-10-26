@@ -30,8 +30,8 @@
         <p>Enter the pairing code from your computer. Use a trusted local network and an HTTPS connection.</p>
         <label for="joinCode">Pairing code</label>
         <div class="actions"><input id="joinCode" autocomplete="off" autocapitalize="characters" maxlength="8" placeholder="ABCDEFGH"><button id="join" class="primary">Connect</button></div>
-        <button id="pip" disabled>Try Picture-in-Picture</button>
-        <p class="hint">PiP support varies by browser. A native iOS/Android client will be needed for a reliable mobile product.</p>
+        <div class="actions"><button id="pip" disabled>Try Picture-in-Picture</button><button id="refresh" disabled>Refresh video</button></div>
+        <p class="hint">If live video freezes, Refresh video asks the paired Mac to start a fresh video connection. It may briefly interrupt PiP; it does not bypass screen-sharing consent.</p>
       </article>
     </section>
     <section class="monitor panel">

@@ -17,6 +17,7 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 - Best-effort WebSocket reconnect and session resumption with negotiation-scoped ICE buffering (a lost media connection still needs renegotiation).
 - Explicit host capture-stop signaling so a viewer is not incorrectly told the host is still sharing.
 - Browser Picture-in-Picture attempt with graceful unsupported/error feedback.
+- A manual **Refresh video** action for authenticated viewers that asks the Mac host to renegotiate WebRTC video without issuing another pairing code while the authorized session is valid. Device validation of this recovery path is still pending.
 - No screen recordings and no server-side handling of captured media.
 
 ## Local smoke test (desktop only)
@@ -33,7 +34,11 @@ npm start
 
 Open `http://127.0.0.1:8787` twice on the same computer. On one tab choose **Create a session**, on the other enter the code and choose **Connect**. Back on the host tab choose **Share screen**, grant browser consent, and select a display or window. The viewer should receive the video. The **Try Picture-in-Picture** button is experimental.
 
-If port 8787 is already occupied by another application, use `PORT=8788 npm start` and open `http://127.0.0.1:8788` instead. \n\n**2026-10-26:** A Mac/Chrome user test reported successful viewing between two tabs and live PiP while switching Mac apps. This is not an iPhone PiP result; see [test evidence](docs/TESTING.md).\n\nA browser refresh of the host **ends screen capture**. This is an operating-system permission boundary, not a feature we will silently bypass.
+If port 8787 is already occupied, use `PORT=8788 npm start` and open `http://127.0.0.1:8788`.
+
+**2026-10-26 user-reported evidence:** FLOATDESK live video worked in two Mac Chrome tabs and Mac PiP stayed live while switching apps. The owner also reported that an **iPhone 16's floating PiP stayed visible and live while WhatsApp was open**. Session-return and network-failure recovery have not yet been verified; see [test evidence](docs/TESTING.md).
+
+A browser refresh of the host **ends screen capture**. This is an operating-system permission boundary, not a feature we will silently bypass.
 
 ## Phone / LAN experiment
 

@@ -10,9 +10,10 @@
 
 ## M1: mobile PiP feasibility
 
-- [ ] Mac desktop host + iPhone 16 Safari live viewing measured (Mac-only PiP is already user-reported; mobile remains untested).
-- [ ] Safari PiP attempt while opening WhatsApp, record success/failure precisely.
-- [ ] Return from PiP: measure time-to-control/view, failed reconnects, battery, and OS suspension.
+- [x] Live Mac-to-iPhone 16 Safari viewing user-reported successful (2026-10-26; latency not measured).
+- [x] Floating iPhone 16 Safari PiP stayed visible and live with WhatsApp foreground, user-reported (2026-10-26; not independently verified).
+- [ ] Return from PiP and verify re-pairing is unnecessary; test a real interrupted stream, battery, and OS suspension.
+- [x] Implement a host-directed, paired-viewer video-refresh request with a per-room cooldown and automated signaling tests; **physical iPhone recovery remains untested**.
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket, WebSocketServer } from 'ws';
 import { SessionRegistry } from './registry.js';
+import { RecoveryThrottle } from './recovery.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || '8787');
@@ -24,6 +25,7 @@ const routes = new Map([
 ]);
 const registry = new SessionRegistry();
 const attempts = new Map();
+const recoveryThrottle = new RecoveryThrottle();
 const server = (tls ? createHttpsServer({
   cert: readFileSync(tlsCert), key: readFileSync(tlsKey)
 }) : createHttpServer()) ;
@@ -114,6 +116,20 @@ wss.on('connection', (ws, req) => {
           throw new Error('Only a paired host can change capture status.');
         }
         send(registry.peer(ws), { type: 'capture-state', active: data.active });
+      } else if (data.type === 'request-video') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') {
+          throw new Error('Only an authenticated viewer can refresh the video.');
+        }
+        const hostSocket = registry.peer(ws);
+        if (!hostSocket || hostSocket.readyState !== WebSocket.OPEN) {
+          throw new Error('Mac host is unavailable. Reconnect the host first.');
+        }
+        if (!recoveryThrottle.permit(entry.record)) {
+          throw new Error('Refresh requested recently. Wait a few seconds before trying again.');
+        }
+        send(hostSocket, { type: 'viewer-video-recovery-requested' });
+        send(ws, { type: 'recovery-request-accepted' });
       } else if (data.type === 'stop') {
         const peer = registry.peer(ws);
         registry.stop(ws);

@@ -19,9 +19,27 @@ Document **observed behavior, not intentions**. Never report a pass for an iPhon
 
 Source: Direct user report in this project's development conversation, not independently witnessed or instrumented. Host machine is a MacBook Air; Chrome version and macOS version not recorded. The user did not specify exactly which type of display/window was selected in the Chrome picker. Screenshots showed the Chrome share picker and the application launch; no public video or private desktop screenshots are stored. **Do not generalize this Mac/Chrome observation to Safari or iOS.**
 
-## iPhone 16 + Mac — next experiment (NOT YET TESTED)
+## iPhone 16 + Mac — user-reported feasibility result (2026-10-26)
 
-**Goal:** Verify whether a view-only WebRTC `MediaStream` can be displayed on iPhone Safari and, separately, remain visible and live in system PiP while another app (WhatsApp) is foreground.
+**Reported result:** FLOATDESK opened over trusted local HTTPS on the iPhone 16, the Mac's live shared video was visible, and the iPhone's floating Picture-in-Picture view **stayed visible and live while WhatsApp was open**.
+
+| Scenario | Result | Qualification |
+| --- | --- | --- |
+| Trusted HTTPS Safari page reaches Mac | Pass reported | iPhone and Mac on local network; actual iOS/Safari versions not captured |
+| View live Mac stream on iPhone | Pass reported | User directly confirmed Mac video was displayed |
+| Floating iPhone PiP remains live with WhatsApp foreground | Pass reported | Explicit user report on 2026-10-26; no timing/frame measurements |
+| Tap PiP and return to full Safari without pairing | Not yet checked | Requires separate observation |
+| Network loss and automatic recovery | Not yet checked | Pairing and actual live media recovery must be distinguished |
+| Stopped screen capture / host lock | Not yet checked | Must stop presenting an inaccurate live state |
+| Battery, sustained duration, thermal behavior | Not measured | Longer physical test required |
+
+**Evidence level:** User-reported physical iPhone 16 test, not independently observed or instrumented. It establishes browser PiP feasibility for this hardware/network configuration, not universal iOS support or production-grade reliability.
+
+**Next gate:** Return to Safari, test whether a session survives an interruption without re-pairing, and verify explicit Refresh video behavior if the video stalls.
+
+### Reproducible setup and remaining device checks
+
+The following checklist remains for completing M1; passing the initial PiP experiment does not close the issue.
 
 ### Preconditions
 
@@ -65,10 +83,10 @@ For underlying certificate behavior, see [mkcert's mobile instructions](https://
 
 | Scenario | Evidence to record | Result |
 | --- | --- | --- |
-| iPhone Safari page loads over trusted HTTPS | Device iOS version, Safari version, IP/port, no warning | Not tested |
-| Pairing and video stream starts | Pairing success, picture displayed and changing | Not tested |
-| PiP button activates on iPhone | Does floating window appear? If not, capture exact error | Not tested |
-| Switch to WhatsApp | PiP visible? Does picture continue changing after 10–30 s? | Not tested |
+| iPhone Safari page loads over trusted HTTPS | Device iOS version, Safari version, IP/port, no warning | Pass reported; versions not recorded |
+| Pairing and video stream starts | Pairing success, picture displayed and changing | Pass reported |
+| PiP button activates on iPhone | Does floating window appear? If not, capture exact error | Pass reported |
+| Switch to WhatsApp | PiP visible? Does picture continue changing after 10–30 s? | Live PiP reported; duration not measured |
 | Return to Safari | Same session? Does live video return without re-pairing? | Not tested |
 | Screen capture stops at host | Viewer notices loss/accurate status, no leaked frame | Not tested |
 | Network loss and restoration | Record signaling recovery **and** live media independently | Not tested |
@@ -79,6 +97,6 @@ For underlying certificate behavior, see [mkcert's mobile instructions](https://
 
 ### Decision gate
 
-If iPhone live streaming succeeds but Safari PiP does not: record the failure, then design a minimal native iOS player feasibility experiment. If Safari PiP succeeds but video freezes after app switching: distinguish OS suspension from network drop and redesign background handling. If everything succeeds, test restoration and privacy boundaries before implementing remote input.
+Now that live iPhone PiP has been user-reported, **retain the browser-first viewer for the next test**. Verify return-to-app, media recovery, capture revocation, and safe shutdown before considering a native player. Do not equate 'PiP stayed live' with proven instant reconnection.
 
 No macOS-only observation proves mobile behavior. Native touchscreen input is **not implemented** in this browser prototype.
