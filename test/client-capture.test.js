@@ -20,7 +20,7 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
     click() { return this.listeners.get('click')?.(); },
     play() { return Promise.resolve(); }
   });
-  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode']) {
+  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode', 'touchPad', 'controlStatus', 'approveControl', 'revokeControl', 'requestControl', 'releaseControl']) {
     elements.set(id, makeElement());
   }
   const saved = new Map();
