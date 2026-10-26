@@ -46,8 +46,9 @@ function revokeControl(room, reason = 'Touch control is off.') {
   const child = controlAgents.get(room);
   if (child) {
     controlAgents.delete(room);
+    // Stop accepting native events immediately. Child exit is not an authorization boundary.
     child.stdin.end();
-    child.kill();
+    if (!child.killed) child.kill();
   }
   const grant = grantFor(room);
   const previously = grant.phase;
@@ -75,11 +76,13 @@ function startNativeAgent(room) {
   }, 10000);
   timeout.unref();
   function fail(reason) {
-    if (done || controlAgents.get(room) !== child) return;
+    // Exit/error must revoke control even AFTER the agent sent its ready signal.
+    if (controlAgents.get(room) !== child) return;
     clearTimeout(timeout);
     done = true;
     revokeControl(room, reason);
   }
+  child.stdin.on('error', () => fail('Mac input pipe failed; control revoked.'));
   child.stderr.on('data', () => {}); // Drain stderr; never send internal paths to viewer.
   child.on('error', () => fail('Mac touch-control agent failed to start.'));
   child.on('exit', () => fail('Mac touch-control agent exited. Control revoked.'));
