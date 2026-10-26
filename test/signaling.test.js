@@ -77,8 +77,17 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
   await readyMessage;
   assert.ok(joined.token);
   const relayMessage = receive(viewer, 'signal');
-  send(host, { type: 'signal', payload: { type: 'offer', sdp: { type: 'offer', sdp: 'test' } } });
+  send(host, { type: 'signal', payload: { type: 'offer', id: 'a1b2c3d4-1111-4111-8111-a1b2c3d4e5f6', sdp: { type: 'offer', sdp: 'v=0' } } });
   assert.equal((await relayMessage).payload.type, 'offer');
+  const rejectedViewerCapture = receive(viewer, 'error');
+  send(viewer, { type: 'capture-state', active: false });
+  assert.match((await rejectedViewerCapture).message, /Only a paired host/);
+  const captureMessage = receive(viewer, 'capture-state');
+  send(host, { type: 'capture-state', active: true });
+  assert.equal((await captureMessage).active, true);
+  const badSignalMessage = receive(host, 'error');
+  send(host, { type: 'signal', payload: { type: 'offer', id: 'invalid', sdp: { type: 'offer', sdp: '' } } });
+  assert.match((await badSignalMessage).message, /Invalid signal/);
 
   const disconnectMessage = receive(host, 'peer-disconnected');
   viewer.close();

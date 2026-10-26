@@ -15,4 +15,5 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
+      - run: node --check public/client.js && node --check src/server.js
       - run: npm test

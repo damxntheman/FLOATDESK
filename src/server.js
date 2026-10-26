@@ -19,6 +19,7 @@ const publicDir = fileURLToPath(new URL('../public/', import.meta.url));
 const routes = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/client.js', ['client.js', 'text/javascript; charset=utf-8']],
+  ['/ice-queue.js', ['ice-queue.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']]
 ]);
 const registry = new SessionRegistry();
@@ -91,11 +92,28 @@ wss.on('connection', (ws, req) => {
         const entry = registry.forClient(ws);
         if (!entry) throw new Error('Not authenticated to a session.');
         const payload = data.payload;
-        if (!payload || !['offer', 'answer', 'candidate'].includes(payload.type)) throw new Error('Invalid signal.');
+        if (!payload || !['offer', 'answer', 'candidate'].includes(payload.type) ||
+            typeof payload.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(payload.id)) {
+          throw new Error('Invalid signal.');
+        }
+        if (payload.type === 'candidate' &&
+            (!payload.candidate || typeof payload.candidate.candidate !== 'string')) {
+          throw new Error('Invalid ICE candidate.');
+        }
+        if (['offer', 'answer'].includes(payload.type) &&
+            (!payload.sdp || payload.sdp.type !== payload.type || typeof payload.sdp.sdp !== 'string')) {
+          throw new Error('Invalid session description.');
+        }
         if ((payload.type === 'offer' && entry.role !== 'host') ||
             (payload.type === 'answer' && entry.role !== 'viewer')) throw new Error('Invalid signaling direction.');
         const other = registry.peer(ws);
         if (other) send(other, { type: 'signal', payload });
+      } else if (data.type === 'capture-state') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'host' || typeof data.active !== 'boolean') {
+          throw new Error('Only a paired host can change capture status.');
+        }
+        send(registry.peer(ws), { type: 'capture-state', active: data.active });
       } else if (data.type === 'stop') {
         const peer = registry.peer(ws);
         registry.stop(ws);

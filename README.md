@@ -14,7 +14,8 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 - Minimal Node.js signaling service; no cloud account.
 - Eight-character, expiring pairing codes and random 256-bit resume capabilities held in tab session storage.
 - One host / one viewer, local browser screen capture, WebRTC peer-to-peer **view-only** video.
-- Best-effort WebSocket reconnect and session resumption (a lost media connection still needs renegotiation).
+- Best-effort WebSocket reconnect and session resumption with negotiation-scoped ICE buffering (a lost media connection still needs renegotiation).
+- Explicit host capture-stop signaling so a viewer is not incorrectly told the host is still sharing.
 - Browser Picture-in-Picture attempt with graceful unsupported/error feedback.
 - No screen recordings and no server-side handling of captured media.
 
