@@ -9,7 +9,7 @@
 - The server must run on **your own Mac** with the agent binary path configured at launch. Only the host browser connected through Mac localhost can approve.
 - The small Swift agent receives bounded click coordinates through its parent's **stdin**, never a network listener. It checks macOS Accessibility permission and one active display before reporting ready.
 - The local host can **Revoke control**. Control also expires after two minutes, and is revoked if the host stops sharing, either peer disconnects, the session ends, or the native agent exits. Each new grant requires owner approval.
-- Only left-click in the full-screen viewer is implemented. Picture-in-Picture stays **view-only**. No keyboard, text, drag, scroll, files, clipboard or unattended access.
+- Only left-click in the immersive phone viewer is implemented. When the Mac approves control, the iPhone viewer automatically takes over Safari's visible viewport. **Safari on iPhone does not provide reliable arbitrary-element OS-level fullscreen**, so browser chrome may remain visible. Rotate the iPhone to landscape (turn off Portrait Orientation Lock if necessary) for larger, more accurate taps. The viewer can also open a view-only expanded preview using **Expand desktop** or by tapping the preview. **Exit & revoke** closes control view and sends a revocation request. Picture-in-Picture stays **view-only**. No keyboard, text, drag, scroll, files, clipboard or unattended access.
 - **Use only a trusted LAN with no port forwarding.** Accessibility permits powerful computer input; do not use real accounts, credentials, password managers, or sensitive apps in this alpha.
 
 ## Build and run on your Mac
@@ -45,7 +45,7 @@
 
 5. Open **`https://localhost:8788` in Mac Chrome** and the same LAN-hosted FLOATDESK origin in iPhone Safari, with the existing trusted local CA. Create/pair a session; on Mac choose **Entire screen** when Chrome asks what to share.
 
-6. Tap **Request Mac control** on the iPhone; the Mac owner may choose **Allow touch control (2 min)**, after which macOS Accessibility authorization is checked. If the status reports missing permission, check System Settings and retry. Only test on harmless icons/windows. Click **Revoke control** on the Mac to end it immediately.
+6. Tap **Request Mac control** on the iPhone; the Mac owner may choose **Allow touch control (2 min)**, after which macOS Accessibility authorization is checked. **When control becomes active, the phone automatically opens the immersive desktop viewer.** Rotate the phone to landscape and tap a harmless target. Use **Exit & revoke** on the phone or **Revoke control** on the Mac to stop. If the status reports missing permission, check System Settings and retry.
 
 ## Physical acceptance checks
 
@@ -53,6 +53,8 @@
 - [ ] Tap before Mac approval is ignored by the host; an unpaired viewer cannot inject events.
 - [ ] Mac owner deliberately approves, Accessibility check passes, and one test iPhone tap clicks a harmless visible Mac target.
 - [ ] Coordinates remain correct with video letterboxing; black bars don't click.
+- [ ] After Mac approval, the iPhone desktop automatically expands to use Safari's viewport; rotate to landscape and verify tap coordinates remain correct.
+- [ ] **Exit & revoke** returns to the normal page and disables further remote input; verify no pairing change.
 - [ ] Mac Revoke control immediately prevents further clicks.
 - [ ] Stop sharing and End session disable control. Re-sharing requires new browser capture consent and a new explicit control approval.
 - [ ] Disconnect iPhone Wi-Fi while approved: input stops. Reconnection must **not** silently re-enable remote input.

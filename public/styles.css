@@ -13,3 +13,46 @@ button,input{font:inherit}button{background:#233249;color:#eaf3ff;border:1px sol
 .monitor{margin-top:18px}.monitor-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}#status{color:#7be0ce;font-size:.82rem}video{background:#05090f;border-radius:12px;border:1px solid #334355;width:100%;aspect-ratio:16/9;object-fit:contain;margin-top:12px}
 footer{color:#64758b;font-size:.67rem;letter-spacing:.06em;margin-top:30px;text-align:center}a{color:#72dfd1}
 @media(max-width:700px){.grid{grid-template-columns:1fr}.intro{margin:44px 0 26px}.panel{padding:18px}.tag{font-size:.59rem}}
+
+
+/* iPhone Safari does not expose arbitrary-element Fullscreen API. A fixed
+   immersive viewer retains the custom touch overlay and a safe exit control. */
+.immersive-toolbar[hidden]{display:none!important}
+body.control-focus{overflow:hidden;overscroll-behavior:none}
+body.control-focus #desktopMonitor{
+  position:fixed;inset:0;z-index:1000;width:100%;height:100vh;height:100dvh;
+  max-width:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;
+  display:flex;flex-direction:column;overflow:hidden;background:#020810
+}
+body.control-focus #desktopMonitor .monitor-top,
+body.control-focus #desktopMonitor>.hint{display:none}
+body.control-focus #desktopMonitor .video-frame{
+  flex:1;min-height:0;min-width:0;width:100%;display:flex;align-items:stretch;
+  justify-content:center;overflow:hidden;background:#010509
+}
+body.control-focus #desktopMonitor #video{
+  width:100%;height:100%;aspect-ratio:auto;object-fit:contain;
+  margin:0;border:0;border-radius:0;background:#010509
+}
+body.control-focus #desktopMonitor .touch-pad{
+  inset:0;box-shadow:none;border-radius:0;touch-action:none
+}
+body.control-focus #desktopMonitor .immersive-toolbar{
+  position:absolute;z-index:10;left:0;right:0;top:0;display:flex;
+  justify-content:space-between;align-items:center;gap:12px;
+  padding:calc(env(safe-area-inset-top, 0px) + 8px) max(12px,env(safe-area-inset-right, 0px)) 8px max(12px,env(safe-area-inset-left, 0px));
+  pointer-events:none
+}
+body.control-focus #desktopMonitor .immersive-label{
+  color:#e1f7fa;text-shadow:0 1px 4px #000;
+  font-size:.72rem;letter-spacing:.08em;font-weight:700
+}
+body.control-focus #desktopMonitor .exit-view{
+  flex-shrink:0;pointer-events:auto;min-height:44px;
+  color:white;background:rgba(7,21,38,.90);border:1px solid #81d8cf
+}
+@media (orientation:landscape) and (max-height:520px){
+  body.control-focus #desktopMonitor .immersive-toolbar{
+    padding-top:max(4px,env(safe-area-inset-top, 0px))
+  }
+}
