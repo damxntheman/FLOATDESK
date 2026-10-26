@@ -2,8 +2,8 @@
 
 **Your computer, always within reach.** An open-source experiment toward phone-first remote desktop with Picture-in-Picture (PiP), secure quick resumption, and natural touch interaction.
 
-> **Status: early research prototype. Not a remote-control product yet.**
-> The checked-in vertical slice streams a desktop browser's selected screen over WebRTC to a second browser on the local network, using short-lived pairing codes. It does **not** inject mouse/keyboard events, provide a native mobile application, guarantee PiP on iPhone, or support unattended remote access.
+> **Status: trusted-LAN research prototype, not a secure remote-desktop product.**
+> Screen streaming works without native software. An optional **Mac single-monitor touch-to-click alpha** now exists in source, but has **not** passed physical device tests. It requires deliberate local-host approval, fresh whole-screen sharing permission and macOS Accessibility authorization. No typing, dragging, native mobile app or unattended access.
 
 ## Why build it?
 
@@ -15,11 +15,12 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 - Eight-character, expiring pairing codes and random 256-bit resume capabilities held in tab session storage.
 - One host / one viewer, local browser screen capture, WebRTC peer-to-peer **view-only** video.
 - Best-effort WebSocket reconnect and session resumption with negotiation-scoped ICE buffering (a lost media connection still needs renegotiation).
-- Explicit **Stop sharing** host button (ends media and clears local preview but keeps pairing) versus **End session** (revokes the pairing), with browser capture consent requested again on each restart. The new button still needs physical iPhone testing.
+- Explicit **Stop sharing** host button (ends media and clears local preview but keeps pairing) versus **End session** (revokes the pairing), with browser capture consent requested again on each restart. The owner reported that this button worked on an iPhone 16.
 - Explicit host capture-stop signaling so a viewer is not incorrectly told the host is still sharing.
 - Browser Picture-in-Picture attempt with graceful unsupported/error feedback.
 - A manual **Refresh video** action for authenticated viewers that asks the Mac host to renegotiate WebRTC video without issuing another pairing code while the authorized session is valid. Device validation of this recovery path is still pending.
 - No screen recordings and no server-side handling of captured media.
+- Experimental macOS **tap-to-click** input is disabled unless the Mac owner compiles the Swift agent and explicitly enables it at server launch. Even then, each request needs a separate, expiring 2-minute Mac-local approval. See [M2 setup and safety](docs/M2-TOUCH-CONTROL.md).
 
 ## Local smoke test (desktop only)
 

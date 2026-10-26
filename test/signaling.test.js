@@ -110,6 +110,26 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
   send(viewer, { type: 'request-video' });
   assert.match((await refreshThrottled).message, /recently/);
 
+  // Remote control is always denied by default; a paired viewer cannot click
+  // or request an agent when the host has not shared a full monitor.
+  const clickDenied = receive(viewer, 'error');
+  send(viewer, { type: 'control-click', x: .5, y: .5 });
+  assert.match((await clickDenied).message, /Mac touch control is unavailable/);
+  const requestDenied = receive(viewer, 'error');
+  send(viewer, { type: 'control-request' });
+  assert.match((await requestDenied).message, /entire screen/);
+  const approveDenied = receive(viewer, 'error');
+  send(viewer, { type: 'control-approve' });
+  assert.match((await approveDenied).message, /paired host/);
+  // A claimed monitor does not silently enable control without an installed
+  // native Mac agent and a separate local-host approval.
+  const monitorNotice = receive(viewer, 'capture-state');
+  send(host, { type: 'capture-state', active: true, surface: 'monitor' });
+  await monitorNotice;
+  const missingCompanion = receive(viewer, 'error');
+  send(viewer, { type: 'control-request' });
+  assert.match((await missingCompanion).message, /not configured/);
+
   const badSignalMessage = receive(host, 'error');
   send(host, { type: 'signal', payload: { type: 'offer', id: 'invalid', sdp: { type: 'offer', sdp: '' } } });
   assert.match((await badSignalMessage).message, /Invalid signal/);
