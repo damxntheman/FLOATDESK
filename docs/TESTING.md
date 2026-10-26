@@ -29,13 +29,15 @@ Source: Direct user report in this project's development conversation, not indep
 | View live Mac stream on iPhone | Pass reported | User directly confirmed Mac video was displayed |
 | Floating iPhone PiP remains live with WhatsApp foreground | Pass reported | Explicit user report on 2026-10-26; no timing/frame measurements |
 | Tap PiP and return to full Safari without pairing | Not yet checked | Requires separate observation |
-| Network loss and automatic recovery | Not yet checked | Pairing and actual live media recovery must be distinguished |
+| Network loss and automatic recovery | **Promising, user-reported** | After the suggested iPhone Wi-Fi interruption test, user said the video *seemed to reconnect without tapping Refresh video*. Not independently observed or timed; no repeat test or separate authentication/transport evidence. |
 | Stopped screen capture / host lock | Not yet checked | Must stop presenting an inaccurate live state |
 | Battery, sustained duration, thermal behavior | Not measured | Longer physical test required |
 
 **Evidence level:** User-reported physical iPhone 16 test, not independently observed or instrumented. It establishes browser PiP feasibility for this hardware/network configuration, not universal iOS support or production-grade reliability.
 
-**Next gate:** Return to Safari, test whether a session survives an interruption without re-pairing, and verify explicit Refresh video behavior if the video stalls.
+**Follow-up report (2026-10-26):** In response to the requested Wi-Fi-off/Wi-Fi-on recovery exercise, the user said: “Even better, it seemed to reconnect without clicking refresh.” Record this as an **apparent automatic recovery on one iPhone 16 trial**, not proof that every interrupted connection resumes. The exact outage duration, reconnection delay, whether a fresh pairing code was required, and independently verified stream freshness were not explicitly provided. No manual Refresh video action was used in the reported trial.
+
+**Next gate:** Verify return to Safari without re-pairing, repeat a controlled Wi-Fi interruption while watching a changing clock/video feed, record actual recovery time, then validate capture revocation. Test the explicit Refresh video button only if necessary.
 
 ### Reproducible setup and remaining device checks
 
@@ -89,7 +91,7 @@ For underlying certificate behavior, see [mkcert's mobile instructions](https://
 | Switch to WhatsApp | PiP visible? Does picture continue changing after 10–30 s? | Live PiP reported; duration not measured |
 | Return to Safari | Same session? Does live video return without re-pairing? | Not tested |
 | Screen capture stops at host | Viewer notices loss/accurate status, no leaked frame | Not tested |
-| Network loss and restoration | Record signaling recovery **and** live media independently | Not tested |
+| Network loss and restoration | Record signaling recovery **and** live media independently | Apparent automatic recovery reported once, without tapping Refresh video; repeat and timing not yet verified |
 | iPhone lock/unlock and host sleep/wake | Record whether video freezes, ends or resumes | Not tested |
 | Remove test CA profile after test | Settings → General → VPN & Device Management | Not tested |
 
@@ -97,6 +99,6 @@ For underlying certificate behavior, see [mkcert's mobile instructions](https://
 
 ### Decision gate
 
-Now that live iPhone PiP has been user-reported, **retain the browser-first viewer for the next test**. Verify return-to-app, media recovery, capture revocation, and safe shutdown before considering a native player. Do not equate 'PiP stayed live' with proven instant reconnection.
+Now that live iPhone PiP and one apparent automatic media reconnection have been user-reported, **retain the browser-first viewer for the next test**. Repeat and measure recovery, then verify return-to-app, capture revocation, and safe shutdown before considering a native player. Do not equate 'PiP stayed live' with proven instant reconnection.
 
 No macOS-only observation proves mobile behavior. Native touchscreen input is **not implemented** in this browser prototype.
