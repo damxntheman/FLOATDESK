@@ -26,7 +26,7 @@ test('control approval expands mobile viewer, exit revokes and leaves pairing in
     'create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video',
     'status', 'code', 'joinCode', 'touchPad', 'controlStatus',
     'approveControl', 'revokeControl', 'requestControl', 'releaseControl',
-    'expandView', 'exitView', 'immersiveToolbar', 'touchMarker'
+    'expandView', 'exitView', 'immersiveToolbar', 'previewSource', 'hostPreview', 'hostPreviewNote', 'toggleHostPreview'
   ];
   ids.forEach((id) => list.set(id, el()));
   const classes = new Set();
@@ -118,4 +118,17 @@ test('control approval expands mobile viewer, exit revokes and leaves pairing in
   socket.onclose();
   assert.equal(classes.has('control-focus'), false);
   assert.equal(view('touchPad').hidden, true);
+});
+
+test('landscape control bar reserves a non-touch desktop strip and debug dot is removed', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const css = readFileSync(fileURLToPath(new URL('../public/styles.css', import.meta.url)), 'utf8');
+  const html = readFileSync(fileURLToPath(new URL('../public/index.html', import.meta.url)), 'utf8');
+  const client = readFileSync(fileURLToPath(new URL('../public/client.js', import.meta.url)), 'utf8');
+  assert.match(css, /body\.control-focus #desktopMonitor\{[\s\S]*?top:calc\(54px/);
+  assert.match(css, /body\.control-focus #immersiveToolbar\{[\s\S]*?top:0/);
+  assert.match(css, /@media \(orientation:landscape\)[\s\S]*?body\.control-focus #desktopMonitor\{top:calc\(48px/);
+  assert.doesNotMatch(html, /touchMarker/);
+  assert.doesNotMatch(client, /touchMarker|markerTimer/);
 });

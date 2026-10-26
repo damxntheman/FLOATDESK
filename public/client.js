@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 const buttons = {
   create: $('create'), join: $('join'), share: $('share'), stopShare: $('stopShare'), stop: $('stop'), pip: $('pip'), refresh: $('refresh'),
   requestControl: $('requestControl'), releaseControl: $('releaseControl'), approveControl: $('approveControl'), revokeControl: $('revokeControl'),
-  expandView: $('expandView'), exitView: $('exitView')
+  expandView: $('expandView'), exitView: $('exitView'), toggleHostPreview: $('toggleHostPreview')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -26,13 +26,53 @@ let capturePending = false;
 let controlPhase = 'off';
 const touchPad = $('touchPad');
 const immersiveToolbar = $('immersiveToolbar');
-const touchMarker = $('touchMarker');
+const hostPreview = $('hostPreview');
+const previewSource = $('previewSource');
+const previewNote = $('hostPreviewNote');
 let immersiveOpen = false;
-let markerTimer = null;
-function clearTouchMarker() {
-  if (markerTimer) clearTimeout(markerTimer);
-  markerTimer = null;
-  touchMarker.hidden = true;
+let previewTimer = null;
+let hostPreviewPaused = false;
+// A one-frame-per-second thumbnail keeps an on-Mac monitor preview useful,
+// without fully rendering a recursively captured live video element.
+function clearHostPreview() {
+  if (previewTimer !== null) clearInterval(previewTimer);
+  previewTimer = null;
+  previewSource.pause?.();
+  previewSource.srcObject = null;
+  hostPreview.hidden = true;
+  previewNote.hidden = true;
+  video.hidden = false;
+  buttons.toggleHostPreview.disabled = true;
+  buttons.toggleHostPreview.textContent = 'Pause Mac preview';
+}
+function drawHostPreview() {
+  if (hostPreviewPaused || identity?.role !== 'host' ||
+      previewSource.srcObject !== stream || !stream) return;
+  const width = previewSource.videoWidth;
+  const height = previewSource.videoHeight;
+  if (!(width > 0 && height > 0) || previewSource.readyState < 2) return;
+  const scale = Math.min(480 / width, 300 / height);
+  const outputWidth = Math.max(1, Math.round(width * scale));
+  const outputHeight = Math.max(1, Math.round(height * scale));
+  if (hostPreview.width !== outputWidth) hostPreview.width = outputWidth;
+  if (hostPreview.height !== outputHeight) hostPreview.height = outputHeight;
+  hostPreview.getContext('2d')?.drawImage(previewSource, 0, 0, outputWidth, outputHeight);
+}
+function startHostPreview(selected) {
+  clearHostPreview();
+  hostPreviewPaused = false;
+  video.srcObject = null;
+  video.hidden = true;
+  hostPreview.hidden = false;
+  previewNote.hidden = false;
+  previewNote.textContent = 'Mac thumbnail updates about once a second to minimize screen-capture feedback. iPhone video remains live.';
+  buttons.toggleHostPreview.disabled = false;
+  previewSource.srcObject = selected;
+  previewSource.play?.().catch(() => {});
+  // Sampling is deliberately far cheaper than the old live recursive Mac
+  // preview and never changes the captured track sent to the viewer.
+  drawHostPreview();
+  previewTimer = setInterval(drawHostPreview, 1000);
 }
 // iPhone Safari cannot reliably fullscreen an arbitrary element. Use a
 // viewport-filling interactive layout instead of fullscreening <video> alone,
@@ -40,7 +80,6 @@ function clearTouchMarker() {
 function setImmersiveView(open) {
   const allowed = identity?.role === 'viewer';
   immersiveOpen = Boolean(open && allowed);
-  if (!immersiveOpen) clearTouchMarker();
   document.body.classList.toggle('control-focus', immersiveOpen);
   immersiveToolbar.hidden = !immersiveOpen;
   buttons.expandView.disabled = !allowed || immersiveOpen;
@@ -71,6 +110,7 @@ function syncHostCaptureControls() {
   const active = stream?.getVideoTracks().some((track) => track.readyState === 'live') || false;
   buttons.share.disabled = !isHost || capturePending;
   buttons.stopShare.disabled = !isHost || (!active && !capturePending);
+  if (!isHost || !active) buttons.toggleHostPreview.disabled = true;
 }
 
 const status = (message) => { $('status').textContent = message; };
@@ -110,6 +150,7 @@ function stopCapture(message = 'Screen sharing stopped.') {
   stream = null;
   closePeer();
   video.srcObject = null;
+  clearHostPreview();
   if (previous) {
     previous.getTracks().forEach((track) => track.stop());
     send({ type: 'capture-state', active: false });
@@ -126,6 +167,7 @@ function resetSession() {
   stream = null;
   closePeer();
   video.srcObject = null;
+  clearHostPreview();
   if (previous) previous.getTracks().forEach((track) => track.stop());
   viewerReady = false;
   remember(null);
@@ -145,7 +187,6 @@ function connect() {
     if (identity?.role === 'viewer' && controlPhase === 'active') {
       showControlState('off', 'Connection lost. Touch control disabled.');
     }
-    clearTouchMarker();
     status('Signaling disconnected. Retrying…');
     clearTimeout(reconnectTimer);
     if (!intentionallyStopped) {
@@ -336,10 +377,14 @@ buttons.share.addEventListener('click', async () => {
       stopCapture();
     }, { once: true });
     const surface = track.getSettings?.().displaySurface || 'unknown';
-    // Critical for whole-screen capture: rendering the captured image inside
-    // Chrome itself recursively creates a hall-of-mirrors, wasting frames.
-    // Keep the MediaStream/WebRTC sender; disable only the LOCAL preview.
-    video.srcObject = surface === 'monitor' ? null : stream;
+    // Restored Mac-side feedback: entire-monitor capture uses a sampled, small
+    // local thumbnail rather than the high-rate mirror that caused lag.
+    if (surface === 'monitor') {
+      startHostPreview(selected);
+    } else {
+      clearHostPreview();
+      video.srcObject = selected;
+    }
     syncHostCaptureControls();
     if (video.srcObject) await video.play().catch(() => {});
     if (requestId !== captureRequestId || stream !== selected) return;
@@ -358,6 +403,23 @@ buttons.stopShare.addEventListener('click', () => {
   if (identity?.role !== 'host') return;
   if (!stream && !capturePending) return;
   stopCapture();
+});
+buttons.toggleHostPreview.addEventListener('click', () => {
+  if (identity?.role !== 'host' || hostPreview.hidden || !stream) return;
+  hostPreviewPaused = !hostPreviewPaused;
+  if (hostPreviewPaused) {
+    if (previewTimer !== null) clearInterval(previewTimer);
+    previewTimer = null;
+    previewSource.pause?.();
+    buttons.toggleHostPreview.textContent = 'Resume Mac preview';
+    previewNote.textContent = 'Mac preview paused to reduce load. The iPhone stream continues.';
+  } else {
+    buttons.toggleHostPreview.textContent = 'Pause Mac preview';
+    previewNote.textContent = 'Mac thumbnail updates about once a second to minimize screen-capture feedback. iPhone video remains live.';
+    previewSource.play?.().catch(() => {});
+    drawHostPreview();
+    previewTimer = setInterval(drawHostPreview, 1000);
+  }
 });
 buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
@@ -419,17 +481,9 @@ touchPad.addEventListener('pointerup', (event) => {
     status('Tap ignored: outside the video picture. Try a visible desktop target.');
     return;
   }
-  // Draw a short-lived local marker for diagnosing whether the iPhone
-  // recognized the exact tap. It does NOT claim a click landed on the Mac.
-  const box = video.getBoundingClientRect();
-  touchMarker.style.left = ((event.clientX - box.left) / box.width * 100) + '%';
-  touchMarker.style.top = ((event.clientY - box.top) / box.height * 100) + '%';
-  touchMarker.hidden = false;
-  if (markerTimer) clearTimeout(markerTimer);
-  markerTimer = setTimeout(() => { touchMarker.hidden = true; }, 600);
-  if (send({ type: 'control-click', ...point })) {
-    status('Mac click requested at ' + Math.round(point.x * 100) + '%, ' + Math.round(point.y * 100) + '% of screen.');
-  }
+  // No transient tap circle: the remote desktop responds visually to the
+  // actual Mac click; keep the phone view free of debug decorations.
+  send({ type: 'control-click', ...point });
 });
 touchPad.addEventListener('pointercancel', () => { touchStart = null; });
 buttons.stop.addEventListener('click', () => {

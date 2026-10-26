@@ -15,12 +15,13 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
   const elements = new Map();
   const makeElement = () => ({
     disabled: false, value: '', textContent: '', srcObject: null, hidden: true, style: {},
+    pause() {},
     listeners: new Map(),
     addEventListener(name, callback) { this.listeners.set(name, callback); },
     click() { return this.listeners.get('click')?.(); },
     play() { return Promise.resolve(); }
   });
-  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode', 'touchPad', 'controlStatus', 'approveControl', 'revokeControl', 'requestControl', 'releaseControl', 'expandView', 'exitView', 'immersiveToolbar', 'touchMarker']) {
+  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode', 'touchPad', 'controlStatus', 'approveControl', 'revokeControl', 'requestControl', 'releaseControl', 'expandView', 'exitView', 'immersiveToolbar', 'previewSource', 'hostPreview', 'hostPreviewNote', 'toggleHostPreview']) {
     elements.set(id, makeElement());
   }
   const saved = new Map();
@@ -50,6 +51,9 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
     return { track, getTracks: () => [track], getVideoTracks: () => [track] };
   }
   const streams = [fakeStream(), fakeStream(), fakeStream()];
+  // The final capture is a whole-monitor capture: host sees the sampled
+  // thumbnail instead of the old recursive live video.
+  streams[2].getVideoTracks()[0].getSettings = () => ({ displaySurface: 'monitor', height: 900 });
   let selection = 0;
   const nextCapture = () => Promise.resolve(streams[selection++]);
   const defined = {
@@ -113,12 +117,23 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
 
   await button('share').click();
   assert.equal(streams[2].track.readyState, 'live');
+  assert.equal(button('video').srcObject, null, 'recursive Mac video not rendered at full frame rate');
+  assert.equal(button('video').hidden, true, 'host video element hidden when sampled preview is active');
+  assert.equal(button('hostPreview').hidden, false, 'sampled Mac thumbnail is visible');
+  assert.equal(button('hostPreviewNote').hidden, false);
+  assert.equal(button('toggleHostPreview').disabled, false);
+  button('toggleHostPreview').click();
+  assert.match(button('hostPreviewNote').textContent, /paused/i);
+  button('toggleHostPreview').click();
+  assert.match(button('hostPreviewNote').textContent, /updates about once/i);
   button('stop').click();
   assert.equal(sent.at(-1).type, 'stop', 'only End session sends stop');
   assert.equal(saved.size, 0, 'End session revokes local pairing');
   assert.equal(button('code').textContent, '—');
   assert.equal(streams[2].track.readyState, 'ended');
   assert.equal(button('video').srcObject, null);
+  assert.equal(button('hostPreview').hidden, true, 'host sample timer and thumbnail cleared on End session');
+  assert.equal(button('toggleHostPreview').disabled, true);
 });
 
 test('Stop sharing invalidates an in-flight browser capture request', async () => {
