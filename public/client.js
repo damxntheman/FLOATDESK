@@ -1,3 +1,5 @@
+import { CandidateBuffer } from './ice-queue.js';
+
 const $ = (id) => document.getElementById(id);
 const buttons = {
   create: $('create'), join: $('join'), share: $('share'), stop: $('stop'), pip: $('pip')
@@ -10,7 +12,9 @@ let socket;
 let peer;
 let stream;
 let viewerReady = false;
-let pendingCandidates = [];
+let pendingCandidates = new CandidateBuffer();
+let negotiationId = null;
+let incomingMessages = Promise.resolve();
 let backoffMs = 1000;
 let reconnectTimer = null;
 let intentionallyStopped = false;
@@ -30,11 +34,16 @@ function send(data) {
   socket.send(JSON.stringify(data));
   return true;
 }
-function closePeer() {
-  pendingCandidates = [];
-  if (peer) peer.close();
+function closePeer(preserveId = null) {
+  const oldPeer = peer;
   peer = null;
-  if (!identity || identity.role !== 'host') video.srcObject = null;
+  negotiationId = null;
+  pendingCandidates.retain(preserveId);
+  if (oldPeer) oldPeer.close();
+  if (!identity || identity.role !== 'host') {
+    video.srcObject = null;
+    buttons.pip.disabled = true;
+  }
 }
 function resetSession() {
   closePeer();
@@ -63,58 +72,88 @@ function connect() {
     }
   };
   socket.onerror = () => {};
-  socket.onmessage = async (event) => {
-    let data;
-    try { data = JSON.parse(event.data); } catch { return; }
-    try { await handleMessage(data); } catch (error) { status('Media error: ' + error.message); }
+  // Preserve WebSocket message order while asynchronous SDP work completes.
+  socket.onmessage = (event) => {
+    incomingMessages = incomingMessages.then(async () => {
+      let data;
+      try { data = JSON.parse(event.data); } catch { return; }
+      await handleMessage(data);
+    }).catch((error) => { status('Media error: ' + error.message); });
   };
 }
-function makePeer() {
-  closePeer();
-  peer = new RTCPeerConnection({ iceServers: [] });
-  peer.onicecandidate = (event) => {
-    if (event.candidate) send({ type: 'signal', payload: { type: 'candidate', candidate: event.candidate } });
-  };
-  peer.onconnectionstatechange = () => {
-    if (peer) status('Video connection: ' + peer.connectionState);
-  };
-  peer.ontrack = (event) => {
-    if (event.streams[0]) {
-      video.srcObject = event.streams[0];
-      buttons.pip.disabled = false;
-      video.play().catch(() => status('Tap the video to start playback.'));
+function makePeer(id) {
+  closePeer(id);
+  negotiationId = id;
+  const pc = new RTCPeerConnection({ iceServers: [] });
+  peer = pc;
+  pc.onicecandidate = (event) => {
+    if (peer !== pc) return;
+    if (event.candidate) {
+      send({ type: 'signal', payload: { type: 'candidate', id, candidate: event.candidate } });
     }
   };
-  return peer;
+  pc.onconnectionstatechange = () => {
+    if (peer !== pc) return;
+    status('WebRTC video connection: ' + pc.connectionState);
+    if (['failed', 'closed'].includes(pc.connectionState)) buttons.pip.disabled = true;
+  };
+  pc.ontrack = (event) => {
+    if (peer !== pc || !event.streams[0]) return;
+    video.srcObject = event.streams[0];
+    buttons.pip.disabled = false;
+    video.play().catch(() => status('Tap the video to start playback.'));
+    event.track.addEventListener('ended', () => {
+      if (peer === pc) {
+        buttons.pip.disabled = true;
+        status('Remote video track ended.');
+      }
+    }, { once: true });
+  };
+  return pc;
 }
-async function flushCandidates() {
-  if (!peer || !peer.remoteDescription) return;
-  const batch = pendingCandidates.splice(0);
-  for (const candidate of batch) await peer.addIceCandidate(candidate);
+async function flushCandidates(id) {
+  if (!peer || negotiationId !== id || !peer.remoteDescription) return;
+  for (const candidate of pendingCandidates.take(id)) {
+    try { await peer.addIceCandidate(candidate); }
+    catch (error) { status('ICE negotiation problem: ' + error.message); }
+  }
 }
 async function offer() {
   if (!stream || !viewerReady || !identity || identity.role !== 'host') return;
-  const pc = makePeer();
+  const id = crypto.randomUUID();
+  const pc = makePeer(id);
   stream.getTracks().forEach((track) => pc.addTrack(track, stream));
   const description = await pc.createOffer();
+  if (peer !== pc) return;
   await pc.setLocalDescription(description);
-  send({ type: 'signal', payload: { type: 'offer', sdp: pc.localDescription } });
+  if (peer !== pc) return;
+  send({ type: 'signal', payload: { type: 'offer', id, sdp: pc.localDescription } });
 }
 async function receiveSignal(payload) {
-  if (!identity) return;
+  if (!identity || typeof payload.id !== 'string') return;
+  const id = payload.id;
   if (payload.type === 'offer' && identity.role === 'viewer') {
-    const pc = makePeer();
+    const pc = makePeer(id);
     await pc.setRemoteDescription(payload.sdp);
-    await flushCandidates();
+    if (peer !== pc) return;
+    await flushCandidates(id);
     const answer = await pc.createAnswer();
+    if (peer !== pc) return;
     await pc.setLocalDescription(answer);
-    send({ type: 'signal', payload: { type: 'answer', sdp: pc.localDescription } });
-  } else if (payload.type === 'answer' && identity.role === 'host' && peer) {
+    if (peer !== pc) return;
+    send({ type: 'signal', payload: { type: 'answer', id, sdp: pc.localDescription } });
+  } else if (payload.type === 'answer' && identity.role === 'host' && peer && id === negotiationId) {
     await peer.setRemoteDescription(payload.sdp);
-    await flushCandidates();
+    await flushCandidates(id);
   } else if (payload.type === 'candidate' && payload.candidate) {
-    if (peer && peer.remoteDescription) await peer.addIceCandidate(payload.candidate);
-    else pendingCandidates.push(payload.candidate);
+    // Host ignores stale answers/ICE; viewer may receive ICE before the offer.
+    if (identity.role === 'host' && id !== negotiationId) return;
+    if (peer && id === negotiationId && peer.remoteDescription) {
+      try { await peer.addIceCandidate(payload.candidate); }
+      catch (error) { status('ICE negotiation problem: ' + error.message); }
+    } else {
+      pendingCandidates.queue(id, payload.candidate);
+    }
   }
 }
 async function handleMessage(data) {
@@ -135,6 +174,13 @@ async function handleMessage(data) {
     if (identity && identity.role === 'host') viewerReady = false;
     closePeer();
     status('Other device disconnected. Session credentials retained.');
+  } else if (data.type === 'capture-state' && identity?.role === 'viewer') {
+    if (!data.active) {
+      closePeer();
+      status('Host stopped sharing. Waiting for new capture consent.');
+    } else {
+      status('Host enabled screen capture. Establishing video…');
+    }
   } else if (data.type === 'session-ended') {
     resetSession();
     status('Host ended this session.');
@@ -160,10 +206,12 @@ buttons.share.addEventListener('click', async () => {
       if (!stream || stream.getVideoTracks()[0] !== track) return;
       stream = null;
       closePeer();
+      send({ type: 'capture-state', active: false });
       status('Screen sharing stopped.');
     }, { once: true });
     video.srcObject = stream;
     await video.play().catch(() => {});
+    send({ type: 'capture-state', active: true });
     status('Sharing locally. Waiting for viewer or connecting…');
     await offer();
   } catch (error) { status('Screen share not started: ' + error.message); }

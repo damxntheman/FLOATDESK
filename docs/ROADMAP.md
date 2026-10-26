@@ -4,7 +4,8 @@
 
 - [x] Open-source license, contribution/security policies, implementation boundaries.
 - [x] Minimal view-only WebRTC/signaling source and pairing/session unit tests.
-- [ ] CI passing on GitHub (check Actions before marking done).
+- [x] CI passed on GitHub for the original seven tests; subsequent changes require a new passing run.
+- [x] Negotiation-scoped ICE handling, ordered signaling, and explicit capture-stop status implemented (unit/integration tested, not device-validated).
 - [ ] Manual browser-to-browser screen view observed on real hardware.
 
 ## M1: mobile PiP feasibility
