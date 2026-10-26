@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1320">
+  <title>FLOATDESK · Research Preview</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/client.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header><div class="logo">F<span>◈</span>LOATDESK</div><span class="tag">RESEARCH PREVIEW 0.1</span></header>
+    <section class="intro">
+      <p class="eyebrow">YOUR DESKTOP, IN VIEW</p>
+      <h1>Your computer, a tap away.</h1>
+      <p>This is an experimental <strong>view-only</strong> screen stream. Remote input, background reliability, and native PiP are not yet implemented or verified.</p>
+    </section>
+    <section class="grid">
+      <article class="panel" id="hostPanel">
+        <h2>On the computer</h2>
+        <p>Start a pairing session, then choose the screen you want to share. Your browser will request permission.</p>
+        <button id="create" class="primary">Create a session</button>
+        <div class="pairing" aria-live="polite"><small>Pairing code</small><strong id="code">—</strong></div>
+        <div class="actions"><button id="share" disabled>Share screen</button><button id="stop" disabled>End session</button></div>
+        <p class="hint">Screen capture requires a desktop browser and a secure context (HTTPS or localhost).</p>
+      </article>
+      <article class="panel" id="viewerPanel">
+        <h2>On the phone</h2>
+        <p>Enter the pairing code from your computer. Use a trusted local network and an HTTPS connection.</p>
+        <label for="joinCode">Pairing code</label>
+        <div class="actions"><input id="joinCode" autocomplete="off" autocapitalize="characters" maxlength="8" placeholder="ABCDEFGH"><button id="join" class="primary">Connect</button></div>
+        <button id="pip" disabled>Try Picture-in-Picture</button>
+        <p class="hint">PiP support varies by browser. A native iOS/Android client will be needed for a reliable mobile product.</p>
+      </article>
+    </section>
+    <section class="monitor panel">
+      <div class="monitor-top"><h2>Live preview</h2><span id="status" role="status" aria-live="polite">Not connected</span></div>
+      <video id="video" autoplay muted playsinline controls></video>
+      <p class="hint">Video is peer-to-peer over WebRTC when the network permits. The server handles signaling only and does not record video.</p>
+    </section>
+    <footer>LOCAL DEVELOPMENT DEMO · DO NOT EXPOSE TO THE PUBLIC INTERNET · <a href="https://github.com/damxntheman/FLOATDESK" rel="noreferrer">SOURCE CODE</a></footer>
+  </main>
+</body>
+</html>
