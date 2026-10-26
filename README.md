@@ -21,6 +21,7 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 - A manual **Refresh video** action for authenticated viewers that asks the Mac host to renegotiate WebRTC video without issuing another pairing code while the authorized session is valid. Device validation of this recovery path is still pending.
 - No screen recordings and no server-side handling of captured media.
 - Experimental macOS **tap-to-click** input is disabled unless the Mac owner compiles the Swift agent and explicitly enables it at server launch. Even then, each request needs a separate, expiring 2-minute Mac-local approval. See [M2 setup and safety](docs/M2-TOUCH-CONTROL.md).
+- The iPhone viewer automatically expands to a **viewport-filling desktop control view** after approval; it includes **Exit & revoke** and also supports manual **Expand desktop**. This is a CSS immersive layout, **not guaranteed OS-level fullscreen** on iPhone Safari. Turn the phone sideways for larger taps; PiP remains view-only. Device acceptance pending.
 
 ## Local smoke test (desktop only)
 

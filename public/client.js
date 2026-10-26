@@ -4,7 +4,8 @@ import { normalizedVideoPoint } from './touch-mapping.js';
 const $ = (id) => document.getElementById(id);
 const buttons = {
   create: $('create'), join: $('join'), share: $('share'), stopShare: $('stopShare'), stop: $('stop'), pip: $('pip'), refresh: $('refresh'),
-  requestControl: $('requestControl'), releaseControl: $('releaseControl'), approveControl: $('approveControl'), revokeControl: $('revokeControl')
+  requestControl: $('requestControl'), releaseControl: $('releaseControl'), approveControl: $('approveControl'), revokeControl: $('revokeControl'),
+  expandView: $('expandView'), exitView: $('exitView')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -24,7 +25,22 @@ let captureRequestId = 0;
 let capturePending = false;
 let controlPhase = 'off';
 const touchPad = $('touchPad');
+const immersiveToolbar = $('immersiveToolbar');
+let immersiveOpen = false;
+// iPhone Safari cannot reliably fullscreen an arbitrary element. Use a
+// viewport-filling interactive layout instead of fullscreening <video> alone,
+// which would hide the touch overlay and the exit/revoke button.
+function setImmersiveView(open) {
+  const allowed = identity?.role === 'viewer';
+  immersiveOpen = Boolean(open && allowed);
+  document.body.classList.toggle('control-focus', immersiveOpen);
+  immersiveToolbar.hidden = !immersiveOpen;
+  buttons.expandView.disabled = !allowed || immersiveOpen;
+  buttons.exitView.textContent = controlPhase === 'active' ? 'Exit & revoke' : 'Exit view';
+  video.controls = !immersiveOpen;
+}
 function showControlState(phase, message = '') {
+  const wasActive = controlPhase === 'active';
   controlPhase = phase;
   const host = identity?.role === 'host';
   const viewer = identity?.role === 'viewer';
@@ -34,6 +50,12 @@ function showControlState(phase, message = '') {
   buttons.releaseControl.disabled = !viewer || !['requested', 'starting', 'active'].includes(phase);
   touchPad.hidden = !(viewer && phase === 'active');
   $('controlStatus').textContent = message || (phase === 'off' ? 'View-only mode. Remote control is off.' : 'Touch control: ' + phase);
+  // When the Mac approves control, immediately enlarge the phone viewer.
+  // When control is revoked/expired, restore the page and disable taps.
+  if (viewer && phase === 'active') setImmersiveView(true);
+  else if (wasActive && phase !== 'active') setImmersiveView(false);
+  else if (!viewer && immersiveOpen) setImmersiveView(false);
+  else buttons.expandView.disabled = !viewer || immersiveOpen;
 }
 
 function syncHostCaptureControls() {
@@ -112,6 +134,9 @@ function connect() {
     if (identity) send({ type: 'resume', ...identity });
   };
   socket.onclose = () => {
+    if (identity?.role === 'viewer' && controlPhase === 'active') {
+      showControlState('off', 'Connection lost. Touch control disabled.');
+    }
     status('Signaling disconnected. Retrying…');
     clearTimeout(reconnectTimer);
     if (!intentionallyStopped) {
@@ -313,6 +338,23 @@ buttons.requestControl.addEventListener('click', () => send({ type: 'control-req
 buttons.approveControl.addEventListener('click', () => send({ type: 'control-approve' }));
 buttons.revokeControl.addEventListener('click', () => send({ type: 'control-revoke' }));
 buttons.releaseControl.addEventListener('click', () => send({ type: 'control-revoke' }));
+buttons.expandView.addEventListener('click', () => {
+  if (identity?.role === 'viewer') setImmersiveView(true);
+});
+buttons.exitView.addEventListener('click', () => {
+  // Leaving the interactive surface must not silently leave Mac control active.
+  if (controlPhase === 'active' && identity?.role === 'viewer') {
+    send({ type: 'control-revoke' });
+    showControlState('off', 'Control exit requested. Waiting for Mac to revoke…');
+  }
+  setImmersiveView(false);
+});
+video.addEventListener('click', () => {
+  // The viewer can enlarge the preview before requesting control, too.
+  if (identity?.role === 'viewer' && video.srcObject && controlPhase !== 'active') {
+    setImmersiveView(true);
+  }
+});
 let touchStart = null;
 touchPad.addEventListener('pointerdown', (event) => {
   if (controlPhase !== 'active' || identity?.role !== 'viewer') return;

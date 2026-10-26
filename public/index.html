@@ -14,7 +14,7 @@
     <section class="intro">
       <p class="eyebrow">YOUR DESKTOP, IN VIEW</p>
       <h1>Your computer, a tap away.</h1>
-      <p>This is an experimental <strong>view-only</strong> screen stream. Remote input, background reliability, and native PiP are not yet implemented or verified.</p>
+      <p>View-only streaming works by default. Experimental Mac touch-to-click requires your explicit approval and Accessibility permission. Not a production remote desktop, and PiP remains view-only.</p>
     </section>
     <section class="grid">
       <article class="panel" id="hostPanel">
@@ -39,12 +39,16 @@
         <p class="hint">If live video freezes, Refresh video asks the paired Mac to start a fresh video connection. It may briefly interrupt PiP; it does not bypass screen-sharing consent.</p>
         <div class="control-panel">
           <h3>Touch-to-click · Experimental</h3>
-          <div class="actions"><button id="requestControl" disabled>Request Mac control</button><button id="releaseControl" disabled>Stop controlling</button></div>
-          <p class="hint">Tap the full-screen preview after your Mac approves. Control expires after 2 minutes or ends immediately if the Mac stops sharing or disconnects. Typing, dragging and PiP control are not implemented.</p>
+          <div class="actions"><button id="requestControl" disabled>Request Mac control</button><button id="releaseControl" disabled>Stop controlling</button><button id="expandView" disabled>Expand desktop</button></div>
+          <p class="hint">After Mac approval, the desktop automatically expands to fill the iPhone's Safari viewport. Rotate your phone to landscape for more accurate taps. Exit &amp; revoke closes control safely. PiP stays view-only; typing, dragging and scrolling are not implemented.</p>
         </div>
       </article>
     </section>
-    <section class="monitor panel">
+    <section class="monitor panel" id="desktopMonitor">
+      <div id="immersiveToolbar" class="immersive-toolbar" hidden>
+        <span class="immersive-label">FLOATDESK · DESKTOP VIEW</span>
+        <button id="exitView" class="exit-view" type="button">Exit view</button>
+      </div>
       <div class="monitor-top"><h2>Live preview</h2><span id="status" role="status" aria-live="polite">Not connected</span></div>
       <div class="video-frame"><video id="video" autoplay muted playsinline controls></video><div id="touchPad" class="touch-pad" hidden aria-label="Tap to click on the Mac desktop"></div></div>
       <p id="controlStatus" class="hint" role="status" aria-live="polite">View-only mode. Remote control is off.</p>
