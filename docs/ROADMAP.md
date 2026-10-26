@@ -6,11 +6,11 @@
 - [x] Minimal view-only WebRTC/signaling source and pairing/session unit tests.
 - [x] CI passed on GitHub for the original seven tests; subsequent changes require a new passing run.
 - [x] Negotiation-scoped ICE handling, ordered signaling, and explicit capture-stop status implemented (unit/integration tested, not device-validated).
-- [ ] Manual browser-to-browser screen view observed on real hardware.
+- [x] Mac/Chrome two-tab view-only stream and floating PiP reported working by the user on 2026-10-26 (not independently measured; see docs/TESTING.md).
 
 ## M1: mobile PiP feasibility
 
-- [ ] Mac desktop host + iPhone 16 Safari live viewing measured.
+- [ ] Mac desktop host + iPhone 16 Safari live viewing measured (Mac-only PiP is already user-reported; mobile remains untested).
 - [ ] Safari PiP attempt while opening WhatsApp, record success/failure precisely.
 - [ ] Return from PiP: measure time-to-control/view, failed reconnects, battery, and OS suspension.
 - [ ] Repeat on Android (native PiP may behave differently).

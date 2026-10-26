@@ -33,7 +33,7 @@ npm start
 
 Open `http://127.0.0.1:8787` twice on the same computer. On one tab choose **Create a session**, on the other enter the code and choose **Connect**. Back on the host tab choose **Share screen**, grant browser consent, and select a display or window. The viewer should receive the video. The **Try Picture-in-Picture** button is experimental.
 
-A browser refresh of the host **ends screen capture**. This is an operating-system permission boundary, not a feature we will silently bypass.
+If port 8787 is already occupied by another application, use `PORT=8788 npm start` and open `http://127.0.0.1:8788` instead. \n\n**2026-10-26:** A Mac/Chrome user test reported successful viewing between two tabs and live PiP while switching Mac apps. This is not an iPhone PiP result; see [test evidence](docs/TESTING.md).\n\nA browser refresh of the host **ends screen capture**. This is an operating-system permission boundary, not a feature we will silently bypass.
 
 ## Phone / LAN experiment
 
