@@ -24,6 +24,7 @@ const routes = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/client.js', ['client.js', 'text/javascript; charset=utf-8']],
   ['/ice-queue.js', ['ice-queue.js', 'text/javascript; charset=utf-8']],
+  ['/touch-mapping.js', ['touch-mapping.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']]
 ]);
 const registry = new SessionRegistry();

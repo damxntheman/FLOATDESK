@@ -1,8 +1,10 @@
 import { CandidateBuffer } from './ice-queue.js';
+import { normalizedVideoPoint } from './touch-mapping.js';
 
 const $ = (id) => document.getElementById(id);
 const buttons = {
-  create: $('create'), join: $('join'), share: $('share'), stopShare: $('stopShare'), stop: $('stop'), pip: $('pip'), refresh: $('refresh')
+  create: $('create'), join: $('join'), share: $('share'), stopShare: $('stopShare'), stop: $('stop'), pip: $('pip'), refresh: $('refresh'),
+  requestControl: $('requestControl'), releaseControl: $('releaseControl'), approveControl: $('approveControl'), revokeControl: $('revokeControl')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -20,6 +22,19 @@ let reconnectTimer = null;
 let intentionallyStopped = false;
 let captureRequestId = 0;
 let capturePending = false;
+let controlPhase = 'off';
+const touchPad = $('touchPad');
+function showControlState(phase, message = '') {
+  controlPhase = phase;
+  const host = identity?.role === 'host';
+  const viewer = identity?.role === 'viewer';
+  buttons.approveControl.disabled = !host || phase !== 'requested';
+  buttons.revokeControl.disabled = !host || !['requested', 'starting', 'active'].includes(phase);
+  buttons.requestControl.disabled = !viewer || phase !== 'off';
+  buttons.releaseControl.disabled = !viewer || !['requested', 'starting', 'active'].includes(phase);
+  touchPad.hidden = !(viewer && phase === 'active');
+  $('controlStatus').textContent = message || (phase === 'off' ? 'View-only mode. Remote control is off.' : 'Touch control: ' + phase);
+}
 
 function syncHostCaptureControls() {
   const isHost = identity?.role === 'host';
@@ -38,6 +53,7 @@ function remember(value) {
   buttons.create.disabled = Boolean(value);
   buttons.join.disabled = Boolean(value);
   buttons.refresh.disabled = !value || value.role !== 'viewer';
+  showControlState(controlPhase);
 }
 function send(data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) { status('Signaling unavailable. Reconnecting…'); return false; }
@@ -72,6 +88,7 @@ function stopCapture(message = 'Screen sharing stopped.') {
   status(message);
 }
 function resetSession() {
+  showControlState('off', 'Remote control off.');
   // Ending a session must also invalidate any pending capture permission picker.
   captureRequestId++;
   capturePending = false;
@@ -207,16 +224,20 @@ async function handleMessage(data) {
       viewerReady = true;
       await offer();
     }
+  } else if (data.type === 'control-state') {
+    showControlState(data.state, data.message);
   } else if (data.type === 'recovery-request-accepted') {
     status('Refresh accepted. Waiting for a new WebRTC video connection…');
   } else if (data.type === 'signal') {
     await receiveSignal(data.payload);
   } else if (data.type === 'peer-disconnected') {
+    showControlState('off', 'Other device disconnected. Control revoked.');
     if (identity && identity.role === 'host') viewerReady = false;
     closePeer();
     status('Other device disconnected. Session credentials retained.');
   } else if (data.type === 'capture-state' && identity?.role === 'viewer') {
     if (!data.active) {
+      showControlState('off', 'Host stopped sharing. Touch control revoked.');
       closePeer();
       status('Host stopped sharing. Waiting for new capture consent.');
     } else {
@@ -267,7 +288,9 @@ buttons.share.addEventListener('click', async () => {
     syncHostCaptureControls();
     await video.play().catch(() => {});
     if (requestId !== captureRequestId || stream !== selected) return;
-    send({ type: 'capture-state', active: true });
+    const surface = track.getSettings?.().displaySurface || 'unknown';
+    send({ type: 'capture-state', active: true, surface });
+    if (surface !== 'monitor') showControlState('off', 'View only. Select an entire screen for touch control.');
     status('Sharing locally. Waiting for viewer or connecting…');
     await offer();
   } catch (error) {
@@ -286,6 +309,27 @@ buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
   if (send({ type: 'request-video' })) status('Requesting new video from the Mac…');
 });
+buttons.requestControl.addEventListener('click', () => send({ type: 'control-request' }));
+buttons.approveControl.addEventListener('click', () => send({ type: 'control-approve' }));
+buttons.revokeControl.addEventListener('click', () => send({ type: 'control-revoke' }));
+buttons.releaseControl.addEventListener('click', () => send({ type: 'control-revoke' }));
+let touchStart = null;
+touchPad.addEventListener('pointerdown', (event) => {
+  if (controlPhase !== 'active' || identity?.role !== 'viewer') return;
+  event.preventDefault();
+  touchStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  touchPad.setPointerCapture?.(event.pointerId);
+});
+touchPad.addEventListener('pointerup', (event) => {
+  if (!touchStart || event.pointerId !== touchStart.id) return;
+  event.preventDefault();
+  const travel = Math.hypot(event.clientX - touchStart.x, event.clientY - touchStart.y);
+  touchStart = null;
+  if (travel > 14 || controlPhase !== 'active') return; // avoid accidental taps while swiping
+  const point = normalizedVideoPoint(video, event.clientX, event.clientY);
+  if (point) send({ type: 'control-click', ...point });
+});
+touchPad.addEventListener('pointercancel', () => { touchStart = null; });
 buttons.stop.addEventListener('click', () => {
   send({ type: 'stop' });
   resetSession();
