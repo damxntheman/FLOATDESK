@@ -15,7 +15,7 @@ test('control approval expands mobile viewer, exit revokes and leaves pairing in
   const list = new Map();
   function el() {
     return {
-      disabled: false, hidden: true, textContent: '', srcObject: null, controls: true,
+      disabled: false, hidden: true, textContent: '', srcObject: null, controls: true, style: {},
       listeners: {},
       addEventListener(type, cb) { this.listeners[type] = cb; },
       click() { return this.listeners.click?.(); },
@@ -26,7 +26,7 @@ test('control approval expands mobile viewer, exit revokes and leaves pairing in
     'create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video',
     'status', 'code', 'joinCode', 'touchPad', 'controlStatus',
     'approveControl', 'revokeControl', 'requestControl', 'releaseControl',
-    'expandView', 'exitView', 'immersiveToolbar'
+    'expandView', 'exitView', 'immersiveToolbar', 'touchMarker'
   ];
   ids.forEach((id) => list.set(id, el()));
   const classes = new Set();
@@ -94,8 +94,15 @@ test('control approval expands mobile viewer, exit revokes and leaves pairing in
   assert.equal(view('touchPad').hidden, false, 'only approved control enables tap surface');
   assert.equal(view('exitView').textContent, 'Exit & revoke');
   assert.equal(view('video').controls, false);
-  view('exitView').click();
+  // Simulate the iPhone's actual touch (pointerdown) path. A subsequent
+  // synthetic click must not send a second revocation.
+  view('exitView').listeners.pointerdown({
+    preventDefault() {}, stopPropagation() {}
+  });
   assert.deepEqual(sent.at(-1), { type: 'control-revoke' });
+  const revokedCount = sent.length;
+  view('exitView').click();
+  assert.equal(sent.length, revokedCount, 'touch must not double revoke');
   assert.equal(view('touchPad').hidden, true);
   assert.equal(classes.has('control-focus'), false);
   assert.equal(view('immersiveToolbar').hidden, true);

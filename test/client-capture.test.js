@@ -14,13 +14,13 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
   });
   const elements = new Map();
   const makeElement = () => ({
-    disabled: false, value: '', textContent: '', srcObject: null,
+    disabled: false, value: '', textContent: '', srcObject: null, hidden: true, style: {},
     listeners: new Map(),
     addEventListener(name, callback) { this.listeners.set(name, callback); },
     click() { return this.listeners.get('click')?.(); },
     play() { return Promise.resolve(); }
   });
-  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode', 'touchPad', 'controlStatus', 'approveControl', 'revokeControl', 'requestControl', 'releaseControl', 'expandView', 'exitView', 'immersiveToolbar']) {
+  for (const id of ['create', 'join', 'share', 'stopShare', 'stop', 'pip', 'refresh', 'video', 'status', 'code', 'joinCode', 'touchPad', 'controlStatus', 'approveControl', 'revokeControl', 'requestControl', 'releaseControl', 'expandView', 'exitView', 'immersiveToolbar', 'touchMarker']) {
     elements.set(id, makeElement());
   }
   const saved = new Map();
