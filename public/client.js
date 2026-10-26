@@ -26,13 +26,21 @@ let capturePending = false;
 let controlPhase = 'off';
 const touchPad = $('touchPad');
 const immersiveToolbar = $('immersiveToolbar');
+const touchMarker = $('touchMarker');
 let immersiveOpen = false;
+let markerTimer = null;
+function clearTouchMarker() {
+  if (markerTimer) clearTimeout(markerTimer);
+  markerTimer = null;
+  touchMarker.hidden = true;
+}
 // iPhone Safari cannot reliably fullscreen an arbitrary element. Use a
 // viewport-filling interactive layout instead of fullscreening <video> alone,
 // which would hide the touch overlay and the exit/revoke button.
 function setImmersiveView(open) {
   const allowed = identity?.role === 'viewer';
   immersiveOpen = Boolean(open && allowed);
+  if (!immersiveOpen) clearTouchMarker();
   document.body.classList.toggle('control-focus', immersiveOpen);
   immersiveToolbar.hidden = !immersiveOpen;
   buttons.expandView.disabled = !allowed || immersiveOpen;
@@ -137,6 +145,7 @@ function connect() {
     if (identity?.role === 'viewer' && controlPhase === 'active') {
       showControlState('off', 'Connection lost. Touch control disabled.');
     }
+    clearTouchMarker();
     status('Signaling disconnected. Retrying…');
     clearTimeout(reconnectTimer);
     if (!intentionallyStopped) {
@@ -195,7 +204,24 @@ async function offer() {
   if (!stream || !viewerReady || !identity || identity.role !== 'host') return;
   const id = crypto.randomUUID();
   const pc = makePeer(id);
-  stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+  stream.getTracks().forEach((track) => {
+    const sender = pc.addTrack(track, stream);
+    if (track.kind === 'video' && sender?.getParameters && sender?.setParameters) {
+      // Soft cap: reduce native Retina encoding work and avoid multi-second
+      // buffering under constrained LAN / M1 GPU load. Keep aspect ratio.
+      const params = sender.getParameters();
+      if (params.encodings?.length) {
+        const baseEncoding = params.encodings[0];
+        const sourceHeight = track.getSettings?.().height || 900;
+        baseEncoding.maxBitrate = 1800000;
+        baseEncoding.maxFramerate = 12;
+        baseEncoding.scaleResolutionDownBy = Math.max(1, sourceHeight / 900);
+        sender.setParameters(params).catch(() => {
+          // Some WebRTC stacks reject encoding limits; video still works.
+        });
+      }
+    }
+  });
   const description = await pc.createOffer();
   if (peer !== pc) return;
   await pc.setLocalDescription(description);
@@ -289,7 +315,7 @@ buttons.share.addEventListener('click', async () => {
   capturePending = true;
   syncHostCaptureControls();
   try {
-    const selected = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false });
+    const selected = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 12, max: 15 } }, audio: false });
     // A pending chooser may resolve after Stop sharing or End session.
     if (requestId !== captureRequestId || identity?.role !== 'host') {
       selected.getTracks().forEach((track) => track.stop());
@@ -309,11 +335,14 @@ buttons.share.addEventListener('click', async () => {
       if (stream?.getVideoTracks()[0] !== track) return;
       stopCapture();
     }, { once: true });
-    video.srcObject = stream;
-    syncHostCaptureControls();
-    await video.play().catch(() => {});
-    if (requestId !== captureRequestId || stream !== selected) return;
     const surface = track.getSettings?.().displaySurface || 'unknown';
+    // Critical for whole-screen capture: rendering the captured image inside
+    // Chrome itself recursively creates a hall-of-mirrors, wasting frames.
+    // Keep the MediaStream/WebRTC sender; disable only the LOCAL preview.
+    video.srcObject = surface === 'monitor' ? null : stream;
+    syncHostCaptureControls();
+    if (video.srcObject) await video.play().catch(() => {});
+    if (requestId !== captureRequestId || stream !== selected) return;
     send({ type: 'capture-state', active: true, surface });
     if (surface !== 'monitor') showControlState('off', 'View only. Select an entire screen for touch control.');
     status('Sharing locally. Waiting for viewer or connecting…');
@@ -341,13 +370,30 @@ buttons.releaseControl.addEventListener('click', () => send({ type: 'control-rev
 buttons.expandView.addEventListener('click', () => {
   if (identity?.role === 'viewer') setImmersiveView(true);
 });
-buttons.exitView.addEventListener('click', () => {
-  // Leaving the interactive surface must not silently leave Mac control active.
-  if (controlPhase === 'active' && identity?.role === 'viewer') {
-    send({ type: 'control-revoke' });
-    showControlState('off', 'Control exit requested. Waiting for Mac to revoke…');
+function exitImmersiveControl() {
+  if (!immersiveOpen) return;
+  // Never leave a live touch layer attached while an exit request is pending.
+  // Server ack still determines whether native Mac control was truly revoked.
+  const active = controlPhase === 'active' && identity?.role === 'viewer';
+  if (active) {
+    const sent = send({ type: 'control-revoke' });
+    showControlState('off', sent
+      ? 'Control disabled on phone; revocation requested from Mac.'
+      : 'No connection to Mac. Check Mac Revoke control or Stop sharing.');
   }
   setImmersiveView(false);
+}
+buttons.exitView.addEventListener('pointerdown', (event) => {
+  // iPhone may compose WebRTC video above adjacent DOM. Make the separate
+  // top-level safety button act immediately on touch rather than waiting for
+  // a synthetic click delayed/cancelled by mobile gesture handling.
+  event.preventDefault();
+  event.stopPropagation?.();
+  exitImmersiveControl();
+});
+buttons.exitView.addEventListener('click', exitImmersiveControl);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && immersiveOpen) exitImmersiveControl();
 });
 video.addEventListener('click', () => {
   // The viewer can enlarge the preview before requesting control, too.
@@ -369,7 +415,21 @@ touchPad.addEventListener('pointerup', (event) => {
   touchStart = null;
   if (travel > 14 || controlPhase !== 'active') return; // avoid accidental taps while swiping
   const point = normalizedVideoPoint(video, event.clientX, event.clientY);
-  if (point) send({ type: 'control-click', ...point });
+  if (!point) {
+    status('Tap ignored: outside the video picture. Try a visible desktop target.');
+    return;
+  }
+  // Draw a short-lived local marker for diagnosing whether the iPhone
+  // recognized the exact tap. It does NOT claim a click landed on the Mac.
+  const box = video.getBoundingClientRect();
+  touchMarker.style.left = ((event.clientX - box.left) / box.width * 100) + '%';
+  touchMarker.style.top = ((event.clientY - box.top) / box.height * 100) + '%';
+  touchMarker.hidden = false;
+  if (markerTimer) clearTimeout(markerTimer);
+  markerTimer = setTimeout(() => { touchMarker.hidden = true; }, 600);
+  if (send({ type: 'control-click', ...point })) {
+    status('Mac click requested at ' + Math.round(point.x * 100) + '%, ' + Math.round(point.y * 100) + '% of screen.');
+  }
 });
 touchPad.addEventListener('pointercancel', () => { touchStart = null; });
 buttons.stop.addEventListener('click', () => {

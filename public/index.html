@@ -45,16 +45,18 @@
       </article>
     </section>
     <section class="monitor panel" id="desktopMonitor">
-      <div id="immersiveToolbar" class="immersive-toolbar" hidden>
-        <span class="immersive-label">FLOATDESK · DESKTOP VIEW</span>
-        <button id="exitView" class="exit-view" type="button">Exit view</button>
-      </div>
       <div class="monitor-top"><h2>Live preview</h2><span id="status" role="status" aria-live="polite">Not connected</span></div>
-      <div class="video-frame"><video id="video" autoplay muted playsinline controls></video><div id="touchPad" class="touch-pad" hidden aria-label="Tap to click on the Mac desktop"></div></div>
+      <div class="video-frame"><video id="video" autoplay muted playsinline controls></video><div id="touchPad" class="touch-pad" hidden aria-label="Tap to click on the Mac desktop"></div><div id="touchMarker" class="touch-marker" hidden aria-hidden="true"></div></div>
       <p id="controlStatus" class="hint" role="status" aria-live="polite">View-only mode. Remote control is off.</p>
       <p class="hint">Video is peer-to-peer over WebRTC when the network permits. The server handles signaling only and does not record video.</p>
     </section>
     <footer>LOCAL DEVELOPMENT DEMO · DO NOT EXPOSE TO THE PUBLIC INTERNET · <a href="https://github.com/damxntheman/FLOATDESK" rel="noreferrer">SOURCE CODE</a></footer>
   </main>
+  <!-- Separate from the video subtree to avoid mobile Safari native video stacking
+       and pointer capture stealing the safety-critical exit control. -->
+  <div id="immersiveToolbar" class="immersive-toolbar" hidden>
+    <span class="immersive-label">FLOATDESK · TOUCH CONTROL</span>
+    <button id="exitView" class="exit-view" type="button">Exit &amp; revoke</button>
+  </div>
 </body>
 </html>

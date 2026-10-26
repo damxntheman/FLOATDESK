@@ -37,22 +37,36 @@ body.control-focus #desktopMonitor #video{
 body.control-focus #desktopMonitor .touch-pad{
   inset:0;box-shadow:none;border-radius:0;touch-action:none
 }
-body.control-focus #desktopMonitor .immersive-toolbar{
-  position:absolute;z-index:10;left:0;right:0;top:0;display:flex;
-  justify-content:space-between;align-items:center;gap:12px;
-  padding:calc(env(safe-area-inset-top, 0px) + 8px) max(12px,env(safe-area-inset-right, 0px)) 8px max(12px,env(safe-area-inset-left, 0px));
-  pointer-events:none
+/* Keep the safety control OUTSIDE the native iOS video compositing layer.
+   Pin it to a reachable bottom corner away from the Safari address bar. */
+body.control-focus #immersiveToolbar{
+  position:fixed;z-index:2147483000;
+  left:max(12px,env(safe-area-inset-left, 0px));
+  right:max(12px,env(safe-area-inset-right, 0px));
+  bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:8px 10px;border-radius:12px;
+  background:rgba(5,15,28,.92);border:1px solid #567386;
+  pointer-events:auto
 }
-body.control-focus #desktopMonitor .immersive-label{
-  color:#e1f7fa;text-shadow:0 1px 4px #000;
-  font-size:.72rem;letter-spacing:.08em;font-weight:700
+body.control-focus #immersiveToolbar .immersive-label{
+  color:#e1f7fa;font-size:.69rem;font-weight:700;letter-spacing:.06em;
+  max-width:45%
 }
-body.control-focus #desktopMonitor .exit-view{
-  flex-shrink:0;pointer-events:auto;min-height:44px;
-  color:white;background:rgba(7,21,38,.90);border:1px solid #81d8cf
+body.control-focus #immersiveToolbar .exit-view{
+  position:relative;z-index:2147483001;
+  min-width:132px;min-height:52px;pointer-events:auto;
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;
+  color:white;background:#26364a;border:2px solid #81d8cf;
+}
+.touch-marker[hidden]{display:none!important}
+.touch-marker{
+  position:absolute;z-index:7;width:24px;height:24px;
+  border:2px solid #fff;border-radius:50%;background:rgba(100,223,209,.28);
+  pointer-events:none;transform:translate(-50%,-50%);
+  box-shadow:0 0 0 2px #06202c
 }
 @media (orientation:landscape) and (max-height:520px){
-  body.control-focus #desktopMonitor .immersive-toolbar{
-    padding-top:max(4px,env(safe-area-inset-top, 0px))
-  }
+  body.control-focus #immersiveToolbar{padding:4px 8px;bottom:calc(4px + env(safe-area-inset-bottom, 0px))}
+  body.control-focus #immersiveToolbar .exit-view{min-height:46px}
 }
