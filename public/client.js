@@ -156,6 +156,8 @@ buttons.share.addEventListener('click', async () => {
     stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false });
     const track = stream.getVideoTracks()[0];
     track.addEventListener('ended', () => {
+      // A previous capture may finish stopping after a replacement has started.
+      if (!stream || stream.getVideoTracks()[0] !== track) return;
       stream = null;
       closePeer();
       status('Screen sharing stopped.');

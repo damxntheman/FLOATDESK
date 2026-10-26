@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { createServer as createHttpServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import { join } from 'node:path';
@@ -82,7 +82,7 @@ wss.on('connection', (ws, req) => {
         send(ws, { type: 'joined', code: info.code, token: info.token, expiresAt: info.expiresAt });
         notifyViewerReady(registry.forClient(ws).record);
       } else if (data.type === 'resume') {
-        if (!permitAttempt(ip)) throw new Error('Too many reconnection attempts.');
+        // Resume tokens carry 256 bits of randomness. Avoid throttling valid rapid resumes.
         const { record, previous } = registry.resume(ws, data.code, data.role, data.token);
         if (previous && previous !== ws && previous.readyState === WebSocket.OPEN) previous.close(4001, 'Session moved');
         send(ws, { type: 'resumed', role: data.role, code: record.code, expiresAt: record.expiresAt });
@@ -117,8 +117,14 @@ wss.on('connection', (ws, req) => {
 });
 
 const housekeeping = setInterval(() => {
-  registry.prune();
   const now = Date.now();
+  for (const room of registry.rooms.values()) {
+    if (now >= room.expiresAt) {
+      send(room.host, { type: 'session-ended' });
+      send(room.viewer, { type: 'session-ended' });
+    }
+  }
+  registry.prune();
   for (const [ip, entry] of attempts) if (now > entry.until) attempts.delete(ip);
 }, 60000);
 housekeeping.unref();
