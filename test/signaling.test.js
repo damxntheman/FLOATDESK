@@ -85,6 +85,23 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
   const captureMessage = receive(viewer, 'capture-state');
   send(host, { type: 'capture-state', active: true });
   assert.equal((await captureMessage).active, true);
+
+  const unauthenticatedRefresh = receive(stranger, 'error');
+  send(stranger, { type: 'request-video' });
+  assert.match((await unauthenticatedRefresh).message, /Only an authenticated viewer/);
+  const hostCannotRefresh = receive(host, 'error');
+  send(host, { type: 'request-video' });
+  assert.match((await hostCannotRefresh).message, /Only an authenticated viewer/);
+
+  const refreshReceived = receive(host, 'viewer-video-recovery-requested');
+  const refreshAccepted = receive(viewer, 'recovery-request-accepted');
+  send(viewer, { type: 'request-video' });
+  await refreshReceived;
+  await refreshAccepted;
+  const refreshThrottled = receive(viewer, 'error');
+  send(viewer, { type: 'request-video' });
+  assert.match((await refreshThrottled).message, /recently/);
+
   const badSignalMessage = receive(host, 'error');
   send(host, { type: 'signal', payload: { type: 'offer', id: 'invalid', sdp: { type: 'offer', sdp: '' } } });
   assert.match((await badSignalMessage).message, /Invalid signal/);

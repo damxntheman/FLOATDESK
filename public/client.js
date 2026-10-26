@@ -2,7 +2,7 @@ import { CandidateBuffer } from './ice-queue.js';
 
 const $ = (id) => document.getElementById(id);
 const buttons = {
-  create: $('create'), join: $('join'), share: $('share'), stop: $('stop'), pip: $('pip')
+  create: $('create'), join: $('join'), share: $('share'), stop: $('stop'), pip: $('pip'), refresh: $('refresh')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -28,6 +28,7 @@ function remember(value) {
   buttons.stop.disabled = !value || value.role !== 'host';
   buttons.create.disabled = Boolean(value);
   buttons.join.disabled = Boolean(value);
+  buttons.refresh.disabled = !value || value.role !== 'viewer';
 }
 function send(data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) { status('Signaling unavailable. Reconnecting…'); return false; }
@@ -168,6 +169,16 @@ async function handleMessage(data) {
   } else if (data.type === 'viewer-ready') {
     viewerReady = true;
     await offer();
+  } else if (data.type === 'viewer-video-recovery-requested' && identity?.role === 'host') {
+    if (!stream || stream.getVideoTracks().every((track) => track.readyState !== 'live')) {
+      send({ type: 'capture-state', active: false });
+      status('Refresh requested, but screen capture has stopped. Share screen again with consent.');
+    } else {
+      viewerReady = true;
+      await offer();
+    }
+  } else if (data.type === 'recovery-request-accepted') {
+    status('Refresh accepted. Waiting for a new WebRTC video connection…');
   } else if (data.type === 'signal') {
     await receiveSignal(data.payload);
   } else if (data.type === 'peer-disconnected') {
@@ -215,6 +226,10 @@ buttons.share.addEventListener('click', async () => {
     status('Sharing locally. Waiting for viewer or connecting…');
     await offer();
   } catch (error) { status('Screen share not started: ' + error.message); }
+});
+buttons.refresh.addEventListener('click', () => {
+  if (identity?.role !== 'viewer') return;
+  if (send({ type: 'request-video' })) status('Requesting new video from the Mac…');
 });
 buttons.stop.addEventListener('click', () => {
   send({ type: 'stop' });

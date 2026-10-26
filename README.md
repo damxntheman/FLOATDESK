@@ -17,6 +17,7 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 - Best-effort WebSocket reconnect and session resumption with negotiation-scoped ICE buffering (a lost media connection still needs renegotiation).
 - Explicit host capture-stop signaling so a viewer is not incorrectly told the host is still sharing.
 - Browser Picture-in-Picture attempt with graceful unsupported/error feedback.
+- A manual **Refresh video** action for authenticated viewers that asks the Mac host to renegotiate WebRTC video without issuing another pairing code while the authorized session is valid. Device validation of this recovery path is still pending.
 - No screen recordings and no server-side handling of captured media.
 
 ## Local smoke test (desktop only)
