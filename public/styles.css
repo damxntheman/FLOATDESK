@@ -19,9 +19,13 @@ footer{color:#64758b;font-size:.67rem;letter-spacing:.06em;margin-top:30px;text-
    immersive viewer retains the custom touch overlay and a safe exit control. */
 .immersive-toolbar[hidden]{display:none!important}
 body.control-focus{overflow:hidden;overscroll-behavior:none}
+/* Reserve a dedicated strip ABOVE the video, never covering Mac pixels.
+   Keep a physical touch-sized Exit & revoke even in landscape Safari. */
 body.control-focus #desktopMonitor{
-  position:fixed;inset:0;z-index:1000;width:100%;height:100vh;height:100dvh;
-  max-width:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;
+  position:fixed;top:calc(54px + env(safe-area-inset-top, 0px));
+  left:0;right:0;bottom:0;z-index:1000;
+  width:100%;height:auto;max-width:none;margin:0;padding:0;
+  border:0;border-radius:0;box-shadow:none;
   display:flex;flex-direction:column;overflow:hidden;background:#020810
 }
 body.control-focus #desktopMonitor .monitor-top,
@@ -37,36 +41,36 @@ body.control-focus #desktopMonitor #video{
 body.control-focus #desktopMonitor .touch-pad{
   inset:0;box-shadow:none;border-radius:0;touch-action:none
 }
-/* Keep the safety control OUTSIDE the native iOS video compositing layer.
-   Pin it to a reachable bottom corner away from the Safari address bar. */
+/* A fixed top control strip occupies its own space; video starts below it.
+   No part of the desktop is hidden by the Exit & revoke button. */
 body.control-focus #immersiveToolbar{
   position:fixed;z-index:2147483000;
-  left:max(12px,env(safe-area-inset-left, 0px));
-  right:max(12px,env(safe-area-inset-right, 0px));
-  bottom:calc(12px + env(safe-area-inset-bottom, 0px));
-  display:flex;justify-content:space-between;align-items:center;gap:12px;
-  padding:8px 10px;border-radius:12px;
-  background:rgba(5,15,28,.92);border:1px solid #567386;
-  pointer-events:auto
+  left:0;right:0;top:0;
+  height:calc(54px + env(safe-area-inset-top, 0px));
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:env(safe-area-inset-top, 0px) max(12px,env(safe-area-inset-right, 0px)) 0 max(12px,env(safe-area-inset-left, 0px));
+  background:#081523;border-bottom:1px solid #567386;pointer-events:auto
 }
 body.control-focus #immersiveToolbar .immersive-label{
-  color:#e1f7fa;font-size:.69rem;font-weight:700;letter-spacing:.06em;
-  max-width:45%
+  color:#d9f8f5;font-size:.68rem;font-weight:700;letter-spacing:.04em;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
 }
 body.control-focus #immersiveToolbar .exit-view{
-  position:relative;z-index:2147483001;
-  min-width:132px;min-height:52px;pointer-events:auto;
-  touch-action:manipulation;-webkit-user-select:none;user-select:none;
-  color:white;background:#26364a;border:2px solid #81d8cf;
+  flex-shrink:0;min-width:120px;min-height:46px;z-index:2147483001;
+  pointer-events:auto;touch-action:manipulation;
+  color:white;background:#26364a;border:2px solid #81d8cf
 }
-.touch-marker[hidden]{display:none!important}
-.touch-marker{
-  position:absolute;z-index:7;width:24px;height:24px;
-  border:2px solid #fff;border-radius:50%;background:rgba(100,223,209,.28);
-  pointer-events:none;transform:translate(-50%,-50%);
-  box-shadow:0 0 0 2px #06202c
+#previewSource[hidden],#video[hidden],#hostPreview[hidden],#hostPreviewNote[hidden]{display:none!important}
+#hostPreview{
+  display:block;width:100%;max-height:320px;aspect-ratio:16/10;
+  object-fit:contain;background:#05090f;border:1px solid #334355;
+  border-radius:12px;margin-top:12px
 }
+body.control-focus #hostPreview{display:none!important}
 @media (orientation:landscape) and (max-height:520px){
-  body.control-focus #immersiveToolbar{padding:4px 8px;bottom:calc(4px + env(safe-area-inset-bottom, 0px))}
-  body.control-focus #immersiveToolbar .exit-view{min-height:46px}
+  body.control-focus #desktopMonitor{top:calc(48px + env(safe-area-inset-top, 0px))}
+  body.control-focus #immersiveToolbar{
+    height:calc(48px + env(safe-area-inset-top, 0px))
+  }
+  body.control-focus #immersiveToolbar .exit-view{min-height:44px}
 }

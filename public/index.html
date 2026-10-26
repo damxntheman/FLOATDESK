@@ -23,6 +23,7 @@
         <button id="create" class="primary">Create a session</button>
         <div class="pairing" aria-live="polite"><small>Pairing code</small><strong id="code">—</strong></div>
         <div class="actions"><button id="share" disabled>Share screen</button><button id="stopShare" disabled>Stop sharing</button><button id="stop" disabled>End session</button></div>
+        <div class="actions"><button id="toggleHostPreview" disabled>Pause Mac preview</button></div>
         <div class="control-panel">
           <h3>Mac touch control · Experimental</h3>
           <p class="hint">Only approve a paired phone you control. For this first version, share your <strong>entire screen</strong> (not a window), keep one monitor connected, and explicitly approve each 2-minute grant. macOS Accessibility permission is required.</p>
@@ -46,7 +47,13 @@
     </section>
     <section class="monitor panel" id="desktopMonitor">
       <div class="monitor-top"><h2>Live preview</h2><span id="status" role="status" aria-live="polite">Not connected</span></div>
-      <div class="video-frame"><video id="video" autoplay muted playsinline controls></video><div id="touchPad" class="touch-pad" hidden aria-label="Tap to click on the Mac desktop"></div><div id="touchMarker" class="touch-marker" hidden aria-hidden="true"></div></div>
+      <div class="video-frame">
+        <video id="video" autoplay muted playsinline controls></video>
+        <video id="previewSource" autoplay muted playsinline hidden></video>
+        <canvas id="hostPreview" hidden aria-label="Low-refresh Mac screen preview"></canvas>
+        <div id="touchPad" class="touch-pad" hidden aria-label="Tap to click on the Mac desktop"></div>
+      </div>
+      <p id="hostPreviewNote" class="hint" hidden>Mac preview updates about once per second to avoid recursive screen-capture lag. Your iPhone receives the normal live stream.</p>
       <p id="controlStatus" class="hint" role="status" aria-live="polite">View-only mode. Remote control is off.</p>
       <p class="hint">Video is peer-to-peer over WebRTC when the network permits. The server handles signaling only and does not record video.</p>
     </section>
