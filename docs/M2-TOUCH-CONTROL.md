@@ -1,6 +1,6 @@
 # FLOATDESK M2 — experimental Mac touch-to-click
 
-**Source implemented, but not yet validated on a physical MacBook or iPhone.** This is a local-network feasibility test, not a supported security-hardened remote desktop product. See Apple's [Accessibility trust API](https://developer.apple.com/documentation/applicationservices/1459186-axisprocesstrustedwithoptions) and [Quartz event posting](https://developer.apple.com/documentation/coregraphics/cgevent/post%28tap%3A%29).
+**Physical test blocker reported on 2026-10-26 (issue #16):** iPhone touch grant activates and the immersive viewer opens, but the owner reported **inaccurate Mac clicks, significant stream delay, and an unresponsive Exit & revoke button**. The follow-up corrective build is in PR #17. **Do not resume live click testing until the owner first verifies Exit & revoke and the Mac-side Revoke control safety fallback.** The native Mac agent has not been modified and does not need rebuilding for this UI change. Source implemented, physical touch accuracy and revocation not yet accepted. This is a local-network feasibility test, not a supported security-hardened remote desktop product. See Apple's [Accessibility trust API](https://developer.apple.com/documentation/applicationservices/1459186-axisprocesstrustedwithoptions) and [Quartz event posting](https://developer.apple.com/documentation/coregraphics/cgevent/post%28tap%3A%29).
 
 ## Safety boundaries
 
@@ -9,6 +9,7 @@
 - The server must run on **your own Mac** with the agent binary path configured at launch. Only the host browser connected through Mac localhost can approve.
 - The small Swift agent receives bounded click coordinates through its parent's **stdin**, never a network listener. It checks macOS Accessibility permission and one active display before reporting ready.
 - The local host can **Revoke control**. Control also expires after two minutes, and is revoked if the host stops sharing, either peer disconnects, the session ends, or the native agent exits. Each new grant requires owner approval.
+- The latest corrective viewer places Exit & revoke in a dedicated **bottom-of-screen toolbar outside the video layer**, adds a temporary dot where Safari registered a tap, and removes host-screen recursive preview when sharing an entire monitor. These fixes are **not yet physically validated**. Screen delay and Mac click positioning must still be measured.
 - Only left-click in the immersive phone viewer is implemented. When the Mac approves control, the iPhone viewer automatically takes over Safari's visible viewport. **Safari on iPhone does not provide reliable arbitrary-element OS-level fullscreen**, so browser chrome may remain visible. Rotate the iPhone to landscape (turn off Portrait Orientation Lock if necessary) for larger, more accurate taps. The viewer can also open a view-only expanded preview using **Expand desktop** or by tapping the preview. **Exit & revoke** closes control view and sends a revocation request. Picture-in-Picture stays **view-only**. No keyboard, text, drag, scroll, files, clipboard or unattended access.
 - **Use only a trusted LAN with no port forwarding.** Accessibility permits powerful computer input; do not use real accounts, credentials, password managers, or sensitive apps in this alpha.
 
@@ -46,6 +47,15 @@
 5. Open **`https://localhost:8788` in Mac Chrome** and the same LAN-hosted FLOATDESK origin in iPhone Safari, with the existing trusted local CA. Create/pair a session; on Mac choose **Entire screen** when Chrome asks what to share.
 
 6. Tap **Request Mac control** on the iPhone; the Mac owner may choose **Allow touch control (2 min)**, after which macOS Accessibility authorization is checked. **When control becomes active, the phone automatically opens the immersive desktop viewer.** Rotate the phone to landscape and tap a harmless target. Use **Exit & revoke** on the phone or **Revoke control** on the Mac to stop. If the status reports missing permission, check System Settings and retry.
+
+## Safe diagnostic sequence for PR #17 (Mac + iPhone)
+
+1. **Stop active control from the Mac** before updating; use **Revoke control** then **Stop sharing**, or `Control + C` in the FLOATDESK server terminal.
+2. Update with `git pull --ff-only` and run `npm test`. Restart the existing HTTPS server on **8788** with the **same existing compiled Swift binary**; its code has not changed and Accessibility need not be regranted.
+3. Pair once, approve a fresh two-minute control grant and verify the **Exit & revoke** button appears at the bottom, separated from the video. Tap it *first*, then try to re-open the viewer: without another approval, no Mac clicks should be possible. Verify the Mac's **Revoke control** / grant-off status as well. **If exit still fails, stop here and use the Mac-side revoke; do not perform tap accuracy tests.**
+4. Only if exit works reliably: start a new approved grant, open a harmless **static** Mac target (such as an empty Finder window), then tap **once near the screen center** on iPhone. A brief marker now shows the local tap position and status displays percentages. Compare the marker to where the Mac event landed; record **whether it missed vertically, horizontally, both, or only after visible video lag**. Do not tap sensitive controls.
+5. For delay diagnosis, put Chrome's FLOATDESK host page behind the Finder window to avoid capturing the viewer's recursive preview. Move a harmless Finder window on Mac and compare how much later it moves on iPhone. The new build caps capture/encode load as a **hypothesis**, not a proven latency improvement.
+6. Run portrait and landscape only after verifying the exit control. Keep PiP view-only.
 
 ## Physical acceptance checks
 

@@ -26,6 +26,7 @@
 - [x] Request/approve/revoke workflow and 2-minute grant implemented; **not yet physically accepted**.
 - [x] Full-view iPhone taps converted to bounded mouse-click coordinates; automated tests cover mapping and grant policy.
 - [x] Auto-open immersive iPhone desktop viewer on touch grant, with an always-visible **Exit & revoke** action and manual Expand desktop. Physical iPhone landscape/portrait verification pending; iPhone Safari does not guarantee arbitrary-element OS-level fullscreen.
+- [ ] **M2 physical blocker (2026-10-26):** grant activates and iPhone view expands, but Mac click coordinates are inaccurate, video is delayed, and Exit & revoke was unresponsive. PR #17 introduces candidate fixes; real iPhone safety and accuracy checks required before declaring any input acceptance.
 - [ ] Native agent compilation and successful Mac+iPhone click; confirm denial before approval and immediate revocation.
 - [ ] Scrolling, right-click, dragging, typing, keyboard, auditable event trail and app signing.
 - [ ] Stronger authentication, protocol replay protection and production security audit.
