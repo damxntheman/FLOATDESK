@@ -30,14 +30,16 @@ Source: Direct user report in this project's development conversation, not indep
 | Floating iPhone PiP remains live with WhatsApp foreground | Pass reported | Explicit user report on 2026-10-26; no timing/frame measurements |
 | Tap PiP and return to full Safari without pairing | Not explicitly checked | Existing Safari page successfully resumed after switching away and restoring Wi-Fi, but returning specifically from active PiP to full Safari is a separate test |
 | Short (~10-second) Wi-Fi interruption; return to existing Safari page | **Pass reported (single trial)** | iPhone Wi-Fi off; viewer visibly disconnected; Safari left open, not swiped closed; Wi-Fi back on after ~10 seconds; user returned to Safari and live video resumed automatically, without pressing Refresh video **or entering another pairing code**. Time-to-video not measured; app/browser not force-closed. |
-| Stopped screen capture / host lock | Not yet checked | Must stop presenting an inaccurate live state |
+| Host-side screen sharing stopped | **Passed (user-reported screenshot)** | iPhone showed “Host stopped sharing. Waiting for new capture consent.”; black, paused video preview; app no longer claimed to be live. Session retained/restart without re-pairing not tested. Host lock/sleep still untested. |
 | Battery, sustained duration, thermal behavior | Not measured | Longer physical test required |
 
 **Evidence level:** User-reported physical iPhone 16 test, not independently observed or instrumented. It establishes browser PiP feasibility for this hardware/network configuration, not universal iOS support or production-grade reliability.
 
 **Clarified follow-up (2026-10-26):** The user confirmed they left Safari open (did **not** swipe it away/force-quit), switched the iPhone Wi-Fi off, **saw FLOATDESK disconnect**, stayed away for approximately **10 seconds**, re-enabled Wi-Fi, returned to Safari and **saw the live stream reconnect automatically**, **without tapping Refresh video and without entering another pairing code**. This replaces the earlier ambiguity over whether credentials had to be re-entered. Evidence is still a **single owner-reported physical test**: exact time-to-recover was not measured, no second trial is reported, browser process termination was not tested, and the signaling-vs-ICE recovery path was not instrumented.
 
-**Next gate:** The short-outage return-to-Safari-without-repairing check passed once. Repeat a controlled interruption while watching a changing clock/video feed, measure time-to-live-video (not just web socket reconnect), then validate capture revocation. Explicit Refresh video after a genuine stall, PiP-to-full-Safari return, host sleep, long interruption, and Safari force-quit/relaunch remain untested.
+**Additional screen-sharing revocation check (2026-10-26):** A screenshot taken on the physical iPhone 16 after host capture was stopped shows the explicit state **“Host stopped sharing. Waiting for new capture consent.”** and a black, paused video player instead of a live desktop. The user confirmed that this matched the intended behavior. An earlier “Host ended the session” report followed an ambiguous click; the user could not remember whether they pressed Chrome's stop-sharing control or FLOATDESK's **End session** action. The repeat screenshot supports correct separation for this test, but does not independently establish what happened in the earlier trial or confirm re-sharing within the same pairing session.
+
+**Next gate:** From the stopped-sharing state, click **Share screen** again in Mac Chrome and check that live video returns on the iPhone without a new code. Also repeat a controlled Wi-Fi interruption with a changing clock/video feed, measure recovery time, and separately test PiP return, host sleep, long interruption and Safari force-quit/relaunch.
 
 ### Reproducible setup and remaining device checks
 
@@ -90,7 +92,7 @@ For underlying certificate behavior, see [mkcert's mobile instructions](https://
 | PiP button activates on iPhone | Does floating window appear? If not, capture exact error | Pass reported |
 | Switch to WhatsApp | PiP visible? Does picture continue changing after 10–30 s? | Live PiP reported; duration not measured |
 | Return to Safari | Same session? Does live video return without re-pairing? | **Pass reported** after ~10-second Wi-Fi interruption; Safari stayed open, not force-quit |
-| Screen capture stops at host | Viewer notices loss/accurate status, no leaked frame | Not tested |
+| Screen capture stops at host | Viewer notices loss/accurate status, no leaked frame | **Pass reported for viewer status and stopped preview**: matching screenshot shows expected “Host stopped sharing” and black paused video. Re-share in same session not yet verified. |
 | Network loss and restoration | Record signaling recovery **and** live media independently | **Pass reported once**: Wi-Fi off, visible disconnect, on after ~10 s, live picture resumed with no Refresh video and no re-pairing; no precise timing or instrumentation |
 | iPhone lock/unlock and host sleep/wake | Record whether video freezes, ends or resumes | Not tested |
 | Remove test CA profile after test | Settings → General → VPN & Device Management | Not tested |
