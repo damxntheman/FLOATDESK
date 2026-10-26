@@ -43,6 +43,8 @@ Source: Direct user report in this project's development conversation, not indep
 
 **New Stop sharing control — physical device test (user-reported, 2026-10-26):** The owner updated FLOATDESK and responded “It all works broski” after trying the new Mac host Stop sharing / Share screen flow with the iPhone 16 viewer. This supports stopping capture while retaining the pairing and restarting capture after a fresh browser window selection. No separate screenshot, recovery timing, or extended reliability measurement was provided for the new button; a separate End session regression on hardware was not explicitly documented.
 
+**M2 touch-control alpha (source only):** See [M2 setup and acceptance](M2-TOUCH-CONTROL.md). Do not report touch-to-click as physically passed until the owner builds the native Mac agent, authorizes it in Accessibility, explicitly approves control after whole-screen sharing, observes a harmless Mac mouse click from iPhone, and verifies Revoke control and capture-stop fail closed. Default view-only tests must continue passing without the agent.
+
 **Next gate:** Repeat a controlled Wi-Fi interruption with changing visual content and measure time-to-live-video. Separately test PiP return, host sleep, long interruption, Safari force-quit/relaunch, and Android. The planned **Stop sharing** button is a host UI improvement, not a prerequisite for the browser's already-working stop/re-share permissions flow.
 
 ### Reproducible setup and remaining device checks

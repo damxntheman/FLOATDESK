@@ -32,8 +32,9 @@ Never claim `live` merely because signaling credentials still exist. Display med
 ## MVP boundaries
 
 - Native iOS/Android PiP still needs device feasibility proof.
-- Native desktop host agent for macOS and Windows still needs design, OS permissions, signing, and validation.
-- Real input control is **not** implemented. It will require an explicit host-side control grant, per-session audit trail, escape mechanism, and secure touch-to-pointer mapping.
+- **M2 macOS input alpha is implemented in source, not yet physically tested**: a user-compiled Swift child process can post normalized left clicks after checking macOS Accessibility trust and exactly one active display. It does not open a network port.
+- The authenticated viewer asks for control, the **locally connected Mac host** approves each short 2-minute grant, and the agent is spawned *only after approval*. Control is revoked on stop sharing, disconnect, session stop, native-agent failure or expiry.
+- Keyboard, mouse dragging, right click, multi-monitor, signing, production authentication, audit trails, and permission-hardening remain unimplemented; see [M2 safety](M2-TOUCH-CONTROL.md).
 - A true mobile experience should favor low-bitrate stream while minimized; browser throttling and iOS background process behavior are not guaranteed.
 - External remote access, unattended control, TURN/relay, file transfer, audio capture, unattended persistence, and multi-monitor are outside the first vertical slice.
 
@@ -43,4 +44,4 @@ Prefer established, audited media libraries and transports over rolling custom c
 
 ## Deployment warning
 
-The current Node server is a research harness, **not** a remote desktop daemon. Browser `getDisplayMedia` mandates interactive consent and cannot grant unattended capture. The prototype has no authorization for OS input injection and must never attempt hidden persistence.
+The current Node server is a research harness, **not** a remote desktop daemon. Browser `getDisplayMedia` mandates interactive consent and cannot grant unattended capture. The experimental touch-alpha has a short-lived authorization gate but has **not** had a security audit or physical device acceptance. It must never attempt hidden persistence or unattended input.

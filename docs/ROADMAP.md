@@ -22,11 +22,12 @@
 
 ## M2: minimum safe remote interaction
 
-- [ ] Separately authorized desktop host agent.
-- [ ] Host prompts for view vs control permissions; clear always-visible disconnect control.
-- [ ] Touch gestures mapped to mouse events; long-press right click; keyboard.
-- [ ] Transport recovery without redundant login where still authorized.
-- [ ] Input event rate-limits, replay protection, audit logs, permission revocation.
+- [x] Mac-only **research click agent** implemented in Swift source; compile, Accessibility permission and real device tests pending.
+- [x] Request/approve/revoke workflow and 2-minute grant implemented; **not yet physically accepted**.
+- [x] Full-view iPhone taps converted to bounded mouse-click coordinates; automated tests cover mapping and grant policy.
+- [ ] Native agent compilation and successful Mac+iPhone click; confirm denial before approval and immediate revocation.
+- [ ] Scrolling, right-click, dragging, typing, keyboard, auditable event trail and app signing.
+- [ ] Stronger authentication, protocol replay protection and production security audit.
 
 ## M3: public beta
 
