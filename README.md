@@ -15,6 +15,7 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 - Eight-character, expiring pairing codes and random 256-bit resume capabilities held in tab session storage.
 - One host / one viewer, local browser screen capture, WebRTC peer-to-peer **view-only** video.
 - Best-effort WebSocket reconnect and session resumption with negotiation-scoped ICE buffering (a lost media connection still needs renegotiation).
+- Explicit **Stop sharing** host button (ends media and clears local preview but keeps pairing) versus **End session** (revokes the pairing), with browser capture consent requested again on each restart. The new button still needs physical iPhone testing.
 - Explicit host capture-stop signaling so a viewer is not incorrectly told the host is still sharing.
 - Browser Picture-in-Picture attempt with graceful unsupported/error feedback.
 - A manual **Refresh video** action for authenticated viewers that asks the Mac host to renegotiate WebRTC video without issuing another pairing code while the authorized session is valid. Device validation of this recovery path is still pending.
@@ -36,7 +37,7 @@ Open `http://127.0.0.1:8787` twice on the same computer. On one tab choose **Cre
 
 If port 8787 is already occupied, use `PORT=8788 npm start` and open `http://127.0.0.1:8788`.
 
-**2026-10-26 user-reported evidence:** FLOATDESK live video worked in two Mac Chrome tabs and Mac PiP stayed live while switching apps. The owner also reported that an **iPhone 16's floating PiP stayed visible and live while WhatsApp was open**. Session-return and network-failure recovery have not yet been verified; see [test evidence](docs/TESTING.md).
+**2026-10-26 user-reported evidence:** FLOATDESK live video worked in two Mac Chrome tabs, and Mac PiP stayed live while switching apps. The iPhone 16's floating PiP also remained live while WhatsApp was open. One roughly 10-second Wi-Fi interruption recovered live video automatically without a new pairing code; Chrome capture revocation and renewed window selection also preserved pairing. These are user-reported single-device tests, **not** a general reliability guarantee; see [test evidence](docs/TESTING.md).
 
 A browser refresh of the host **ends screen capture**. This is an operating-system permission boundary, not a feature we will silently bypass.
 

@@ -86,6 +86,14 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
   send(host, { type: 'capture-state', active: true });
   assert.equal((await captureMessage).active, true);
 
+  // Stopping capture must not terminate the authorized pairing.
+  const captureStopped = receive(viewer, 'capture-state');
+  send(host, { type: 'capture-state', active: false });
+  assert.equal((await captureStopped).active, false);
+  const captureRestarted = receive(viewer, 'capture-state');
+  send(host, { type: 'capture-state', active: true });
+  assert.equal((await captureRestarted).active, true);
+  // The same authenticated viewer can still request video (no new pairing).
   const unauthenticatedRefresh = receive(stranger, 'error');
   send(stranger, { type: 'request-video' });
   assert.match((await unauthenticatedRefresh).message, /Only an authenticated viewer/);
