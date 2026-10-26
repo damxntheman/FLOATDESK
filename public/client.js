@@ -2,7 +2,7 @@ import { CandidateBuffer } from './ice-queue.js';
 
 const $ = (id) => document.getElementById(id);
 const buttons = {
-  create: $('create'), join: $('join'), share: $('share'), stop: $('stop'), pip: $('pip'), refresh: $('refresh')
+  create: $('create'), join: $('join'), share: $('share'), stopShare: $('stopShare'), stop: $('stop'), pip: $('pip'), refresh: $('refresh')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -18,13 +18,22 @@ let incomingMessages = Promise.resolve();
 let backoffMs = 1000;
 let reconnectTimer = null;
 let intentionallyStopped = false;
+let captureRequestId = 0;
+let capturePending = false;
+
+function syncHostCaptureControls() {
+  const isHost = identity?.role === 'host';
+  const active = stream?.getVideoTracks().some((track) => track.readyState === 'live') || false;
+  buttons.share.disabled = !isHost || capturePending;
+  buttons.stopShare.disabled = !isHost || (!active && !capturePending);
+}
 
 const status = (message) => { $('status').textContent = message; };
 function remember(value) {
   identity = value;
   if (value) sessionStorage.setItem(stateKey, JSON.stringify(value));
   else sessionStorage.removeItem(stateKey);
-  buttons.share.disabled = !value || value.role !== 'host';
+  syncHostCaptureControls();
   buttons.stop.disabled = !value || value.role !== 'host';
   buttons.create.disabled = Boolean(value);
   buttons.join.disabled = Boolean(value);
@@ -46,10 +55,31 @@ function closePeer(preserveId = null) {
     buttons.pip.disabled = true;
   }
 }
-function resetSession() {
-  closePeer();
-  if (stream) stream.getTracks().forEach((track) => track.stop());
+function stopCapture(message = 'Screen sharing stopped.') {
+  // Invalidate an in-flight screen picker so an older request cannot restart
+  // screen capture after the owner explicitly stopped it.
+  captureRequestId++;
+  capturePending = false;
+  const previous = stream;
   stream = null;
+  closePeer();
+  video.srcObject = null;
+  if (previous) {
+    previous.getTracks().forEach((track) => track.stop());
+    send({ type: 'capture-state', active: false });
+  }
+  syncHostCaptureControls();
+  status(message);
+}
+function resetSession() {
+  // Ending a session must also invalidate any pending capture permission picker.
+  captureRequestId++;
+  capturePending = false;
+  const previous = stream;
+  stream = null;
+  closePeer();
+  video.srcObject = null;
+  if (previous) previous.getTracks().forEach((track) => track.stop());
   viewerReady = false;
   remember(null);
   $('code').textContent = '—';
@@ -203,29 +233,54 @@ async function handleMessage(data) {
 buttons.create.addEventListener('click', () => send({ type: 'create' }));
 buttons.join.addEventListener('click', () => send({ type: 'join', code: $('joinCode').value.trim().toUpperCase() }));
 buttons.share.addEventListener('click', async () => {
-  if (!identity || identity.role !== 'host') return;
+  if (identity?.role !== 'host' || capturePending) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
     status('Screen capture unavailable: use a compatible desktop browser over HTTPS or localhost.');
     return;
   }
+  // Don't stop an existing capture until new browser consent was granted.
+  const requestId = ++captureRequestId;
+  capturePending = true;
+  syncHostCaptureControls();
   try {
-    if (stream) stream.getTracks().forEach((track) => track.stop());
-    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false });
-    const track = stream.getVideoTracks()[0];
+    const selected = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false });
+    // A pending chooser may resolve after Stop sharing or End session.
+    if (requestId !== captureRequestId || identity?.role !== 'host') {
+      selected.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    capturePending = false;
+    const previous = stream;
+    stream = selected;
+    if (previous) previous.getTracks().forEach((track) => track.stop());
+    const track = selected.getVideoTracks()[0];
+    if (!track || track.readyState !== 'live') {
+      stopCapture('Screen capture did not start. Select a window to try again.');
+      return;
+    }
     track.addEventListener('ended', () => {
-      // A previous capture may finish stopping after a replacement has started.
-      if (!stream || stream.getVideoTracks()[0] !== track) return;
-      stream = null;
-      closePeer();
-      send({ type: 'capture-state', active: false });
-      status('Screen sharing stopped.');
+      // Ignore delayed ended events from an already-replaced capture.
+      if (stream?.getVideoTracks()[0] !== track) return;
+      stopCapture();
     }, { once: true });
     video.srcObject = stream;
+    syncHostCaptureControls();
     await video.play().catch(() => {});
+    if (requestId !== captureRequestId || stream !== selected) return;
     send({ type: 'capture-state', active: true });
     status('Sharing locally. Waiting for viewer or connecting…');
     await offer();
-  } catch (error) { status('Screen share not started: ' + error.message); }
+  } catch (error) {
+    if (requestId !== captureRequestId) return;
+    capturePending = false;
+    syncHostCaptureControls();
+    status(stream ? 'Sharing unchanged: ' + error.message : 'Screen share not started: ' + error.message);
+  }
+});
+buttons.stopShare.addEventListener('click', () => {
+  if (identity?.role !== 'host') return;
+  if (!stream && !capturePending) return;
+  stopCapture();
 });
 buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
