@@ -12,7 +12,8 @@
 
 - [x] Live Mac-to-iPhone 16 Safari viewing user-reported successful (2026-10-26; latency not measured).
 - [x] Floating iPhone 16 Safari PiP stayed visible and live with WhatsApp foreground, user-reported (2026-10-26; not independently verified).
-- [ ] Return from PiP and verify re-pairing is unnecessary; test a real interrupted stream, battery, and OS suspension.
+- [ ] Return from PiP and verify re-pairing is unnecessary; test repeated controlled interruptions, battery, and OS suspension.
+- [x] One **apparent automatic reconnect without tapping Refresh video** reported after the iPhone Wi-Fi on/off test on 2026-10-26; duration, stream freshness, exact recovery time, and repeated success remain unverified.
 - [x] Implement a host-directed, paired-viewer video-refresh request with a per-room cooldown and automated signaling tests; **physical iPhone recovery remains untested**.
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
