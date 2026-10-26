@@ -30,7 +30,7 @@ Source: Direct user report in this project's development conversation, not indep
 | Floating iPhone PiP remains live with WhatsApp foreground | Pass reported | Explicit user report on 2026-10-26; no timing/frame measurements |
 | Tap PiP and return to full Safari without pairing | Not explicitly checked | Existing Safari page successfully resumed after switching away and restoring Wi-Fi, but returning specifically from active PiP to full Safari is a separate test |
 | Short (~10-second) Wi-Fi interruption; return to existing Safari page | **Pass reported (single trial)** | iPhone Wi-Fi off; viewer visibly disconnected; Safari left open, not swiped closed; Wi-Fi back on after ~10 seconds; user returned to Safari and live video resumed automatically, without pressing Refresh video **or entering another pairing code**. Time-to-video not measured; app/browser not force-closed. |
-| Host-side screen sharing stopped | **Passed (user-reported screenshot)** | iPhone showed “Host stopped sharing. Waiting for new capture consent.”; black, paused video preview; app no longer claimed to be live. Session retained/restart without re-pairing not tested. Host lock/sleep still untested. |
+| Host-side screen sharing stopped; re-share with consent | **Pass reported** | iPhone previously showed “Host stopped sharing. Waiting for new capture consent.” and black paused video. Following re-share, user confirmed Chrome requested selecting a window again, **but no new pairing code was required**. The user answered in context of whether video returned; frame continuity not independently instrumented. Host lock/sleep still untested. |
 | Battery, sustained duration, thermal behavior | Not measured | Longer physical test required |
 
 **Evidence level:** User-reported physical iPhone 16 test, not independently observed or instrumented. It establishes browser PiP feasibility for this hardware/network configuration, not universal iOS support or production-grade reliability.
@@ -39,7 +39,9 @@ Source: Direct user report in this project's development conversation, not indep
 
 **Additional screen-sharing revocation check (2026-10-26):** A screenshot taken on the physical iPhone 16 after host capture was stopped shows the explicit state **“Host stopped sharing. Waiting for new capture consent.”** and a black, paused video player instead of a live desktop. The user confirmed that this matched the intended behavior. An earlier “Host ended the session” report followed an ambiguous click; the user could not remember whether they pressed Chrome's stop-sharing control or FLOATDESK's **End session** action. The repeat screenshot supports correct separation for this test, but does not independently establish what happened in the earlier trial or confirm re-sharing within the same pairing session.
 
-**Next gate:** From the stopped-sharing state, click **Share screen** again in Mac Chrome and check that live video returns on the iPhone without a new code. Also repeat a controlled Wi-Fi interruption with a changing clock/video feed, measure recovery time, and separately test PiP return, host sleep, long interruption and Safari force-quit/relaunch.
+**Follow-up re-sharing test (2026-10-26):** After stopping host capture, user tried the Mac **Share screen** action again. Chrome requested a window selection (expected fresh screen-sharing consent) and the same phone session continued **without a new pairing code**. This supports a successful *consent boundary + retained session* on the real Mac/iPhone setup. It does **not** imply capture consent can be silently reused, nor does it establish a timed playback recovery metric. The user did not explicitly provide a frame-by-frame confirmation after re-sharing, so retain that as a future instrumented check.
+
+**Next gate:** Repeat a controlled Wi-Fi interruption with changing visual content and measure time-to-live-video. Separately test PiP return, host sleep, long interruption, Safari force-quit/relaunch, and Android. The planned **Stop sharing** button is a host UI improvement, not a prerequisite for the browser's already-working stop/re-share permissions flow.
 
 ### Reproducible setup and remaining device checks
 
@@ -92,7 +94,8 @@ For underlying certificate behavior, see [mkcert's mobile instructions](https://
 | PiP button activates on iPhone | Does floating window appear? If not, capture exact error | Pass reported |
 | Switch to WhatsApp | PiP visible? Does picture continue changing after 10–30 s? | Live PiP reported; duration not measured |
 | Return to Safari | Same session? Does live video return without re-pairing? | **Pass reported** after ~10-second Wi-Fi interruption; Safari stayed open, not force-quit |
-| Screen capture stops at host | Viewer notices loss/accurate status, no leaked frame | **Pass reported for viewer status and stopped preview**: matching screenshot shows expected “Host stopped sharing” and black paused video. Re-share in same session not yet verified. |
+| Screen capture stops at host | Viewer notices loss/accurate status, no leaked frame | **Pass reported**: expected “Host stopped sharing” and black paused video, as shown in iPhone screenshot. |
+| Host re-shares after stopping | Browser must require new window selection, while existing session remains paired | **Pass reported**: Chrome asked user to select a window again; no new pairing code needed. |
 | Network loss and restoration | Record signaling recovery **and** live media independently | **Pass reported once**: Wi-Fi off, visible disconnect, on after ~10 s, live picture resumed with no Refresh video and no re-pairing; no precise timing or instrumentation |
 | iPhone lock/unlock and host sleep/wake | Record whether video freezes, ends or resumes | Not tested |
 | Remove test CA profile after test | Settings → General → VPN & Device Management | Not tested |
