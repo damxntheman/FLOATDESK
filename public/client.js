@@ -5,7 +5,9 @@ const $ = (id) => document.getElementById(id);
 const buttons = {
   create: $('create'), join: $('join'), share: $('share'), stopShare: $('stopShare'), stop: $('stop'), pip: $('pip'), refresh: $('refresh'),
   requestControl: $('requestControl'), releaseControl: $('releaseControl'), approveControl: $('approveControl'), revokeControl: $('revokeControl'),
-  expandView: $('expandView'), exitView: $('exitView'), toggleHostPreview: $('toggleHostPreview')
+  expandView: $('expandView'), exitView: $('exitView'), toggleHostPreview: $('toggleHostPreview'),
+  requestApps: $('requestApps'), releaseApps: $('releaseApps'), approveApps: $('approveApps'),
+  revokeApps: $('revokeApps'), openDesktop: $('openDesktop')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -24,6 +26,68 @@ let intentionallyStopped = false;
 let captureRequestId = 0;
 let capturePending = false;
 let controlPhase = 'off';
+let appAccessPhase = 'off';
+const appPanel = $('iphoneModePanel');
+const appsGrid = $('appsGrid');
+function showAppPlaceholder(message) {
+  const text = document.createElement('p');
+  text.className = 'hint';
+  text.textContent = message;
+  appsGrid.replaceChildren(text);
+}
+function renderAppCatalog(apps) {
+  appsGrid.replaceChildren();
+  if (!Array.isArray(apps) || !apps.length) {
+    showAppPlaceholder('No applications found in the standard Mac app folders.');
+    return;
+  }
+  for (const app of apps.slice(0, 120)) {
+    if (typeof app?.id !== 'string' || !/^[0-9a-f]{24}$/.test(app.id) ||
+        typeof app.name !== 'string' || app.name.length > 90) continue;
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'iphone-app-card';
+    tile.title = 'Open ' + app.name + ' on Mac';
+    const glyph = document.createElement('span');
+    glyph.className = 'iphone-app-glyph';
+    glyph.textContent = app.name.trim().slice(0, 1).toUpperCase() || '⌘';
+    const label = document.createElement('span');
+    label.className = 'iphone-app-name';
+    label.textContent = app.name;
+    tile.append(glyph, label);
+    tile.addEventListener('click', () => {
+      if (identity?.role !== 'viewer' || appAccessPhase !== 'active') return;
+      if (send({ type:'app-launch', id:app.id })) {
+        $('appLaunchStatus').textContent = 'Opening ' + app.name + ' on the Mac…';
+      }
+    });
+    appsGrid.append(tile);
+  }
+  if (!appsGrid.children.length) showAppPlaceholder('No valid apps were returned.');
+}
+function showAppAccessState(phase, message = '') {
+  const previous = appAccessPhase;
+  appAccessPhase = phase;
+  const viewer = identity?.role === 'viewer';
+  const host = identity?.role === 'host';
+  appPanel.hidden = !viewer;
+  buttons.requestApps.disabled = !viewer || phase !== 'off';
+  buttons.releaseApps.disabled = !viewer || phase === 'off';
+  buttons.approveApps.disabled = !host || phase !== 'requested';
+  buttons.revokeApps.disabled = !host || phase === 'off';
+  $('appAccessStatus').textContent = message || (
+    phase === 'active' ? 'Mac app access enabled (5 minutes).' :
+    phase === 'requested' ? 'Waiting for approval on your Mac.' :
+    'Ask the Mac owner to approve app access to see installed applications.'
+  );
+  if (phase === 'off' && previous !== 'off') {
+    showAppPlaceholder('Mac app access ended. Request permission again.');
+    $('appLaunchStatus').textContent = '';
+  }
+  if (phase === 'active' && previous !== 'active' && viewer) {
+    send({ type:'app-list' });
+  }
+}
 const touchPad = $('touchPad');
 const immersiveToolbar = $('immersiveToolbar');
 const hostPreview = $('hostPreview');
@@ -123,7 +187,9 @@ function remember(value) {
   buttons.create.disabled = Boolean(value);
   buttons.join.disabled = Boolean(value);
   buttons.refresh.disabled = !value || value.role !== 'viewer';
+  buttons.openDesktop.disabled = !value || value.role !== 'viewer' || !video.srcObject;
   showControlState(controlPhase);
+  showAppAccessState(appAccessPhase);
 }
 function send(data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) { status('Signaling unavailable. Reconnecting…'); return false; }
@@ -139,6 +205,7 @@ function closePeer(preserveId = null) {
   if (!identity || identity.role !== 'host') {
     video.srcObject = null;
     buttons.pip.disabled = true;
+    buttons.openDesktop.disabled = true;
   }
 }
 function stopCapture(message = 'Screen sharing stopped.') {
@@ -160,6 +227,7 @@ function stopCapture(message = 'Screen sharing stopped.') {
 }
 function resetSession() {
   showControlState('off', 'Remote control off.');
+  showAppAccessState('off', 'Session ended; app access revoked.');
   // Ending a session must also invalidate any pending capture permission picker.
   captureRequestId++;
   capturePending = false;
@@ -186,6 +254,9 @@ function connect() {
   socket.onclose = () => {
     if (identity?.role === 'viewer' && controlPhase === 'active') {
       showControlState('off', 'Connection lost. Touch control disabled.');
+    }
+    if (identity?.role === 'viewer' && appAccessPhase !== 'off') {
+      showAppAccessState('off', 'Connection lost; Mac app access needs fresh approval.');
     }
     status('Signaling disconnected. Retrying…');
     clearTimeout(reconnectTimer);
@@ -224,6 +295,7 @@ function makePeer(id) {
     if (peer !== pc || !event.streams[0]) return;
     video.srcObject = event.streams[0];
     buttons.pip.disabled = false;
+    buttons.openDesktop.disabled = identity?.role !== 'viewer';
     video.play().catch(() => status('Tap the video to start playback.'));
     event.track.addEventListener('ended', () => {
       if (peer === pc) {
@@ -318,12 +390,23 @@ async function handleMessage(data) {
     }
   } else if (data.type === 'control-state') {
     showControlState(data.state, data.message);
+  } else if (data.type === 'app-access-state') {
+    showAppAccessState(data.state, data.message);
+  } else if (data.type === 'app-list-result') {
+    if (identity?.role === 'viewer' && appAccessPhase === 'active') {
+      renderAppCatalog(data.apps);
+    }
+  } else if (data.type === 'app-launch-result') {
+    if (identity?.role === 'viewer' && appAccessPhase === 'active') {
+      $('appLaunchStatus').textContent = data.name + ' was opened on your Mac.';
+    }
   } else if (data.type === 'recovery-request-accepted') {
     status('Refresh accepted. Waiting for a new WebRTC video connection…');
   } else if (data.type === 'signal') {
     await receiveSignal(data.payload);
   } else if (data.type === 'peer-disconnected') {
     showControlState('off', 'Other device disconnected. Control revoked.');
+    showAppAccessState('off', 'Mac disconnected. App access revoked.');
     if (identity && identity.role === 'host') viewerReady = false;
     closePeer();
     status('Other device disconnected. Session credentials retained.');
@@ -340,6 +423,7 @@ async function handleMessage(data) {
     status('Host ended this session.');
   } else if (data.type === 'error') {
     status(data.message);
+    if (identity?.role === 'viewer') $('appLaunchStatus').textContent = data.message;
     if (/authentication failed|Session unavailable/i.test(data.message)) resetSession();
   }
 }
@@ -424,6 +508,18 @@ buttons.toggleHostPreview.addEventListener('click', () => {
 buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
   if (send({ type: 'request-video' })) status('Requesting new video from the Mac…');
+});
+buttons.requestApps.addEventListener('click', () => send({ type:'app-access-request' }));
+buttons.releaseApps.addEventListener('click', () => send({ type:'app-access-revoke' }));
+buttons.approveApps.addEventListener('click', () => send({ type:'app-access-approve' }));
+buttons.revokeApps.addEventListener('click', () => send({ type:'app-access-revoke' }));
+buttons.openDesktop.addEventListener('click', () => {
+  if (identity?.role !== 'viewer') return;
+  if (!video.srcObject) {
+    $('appLaunchStatus').textContent = 'Ask your Mac to share its screen before opening Desktop Mode.';
+    return;
+  }
+  setImmersiveView(true); // read-only until Mac separately approves touch control
 });
 buttons.requestControl.addEventListener('click', () => send({ type: 'control-request' }));
 buttons.approveControl.addEventListener('click', () => send({ type: 'control-approve' }));
