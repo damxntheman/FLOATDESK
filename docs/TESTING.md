@@ -111,3 +111,7 @@ For underlying certificate behavior, see [mkcert's mobile instructions](https://
 Now that live iPhone PiP and one approximately 10-second Wi-Fi outage with automatic, no-repairing live-picture recovery have been user-reported, **retain the browser-first viewer for the next test**. Repeat and measure recovery, then verify return-to-app, capture revocation, and safe shutdown before considering a native player. Do not equate 'PiP stayed live' with proven instant reconnection.
 
 No macOS-only observation proves mobile behavior. Native touchscreen input is **not implemented** in this browser prototype.
+
+## M3 iPhone Mode first physical test (pending)
+
+App list and launch have been implemented behind an independent five-minute Mac-local authorization grant. See [M3 device checklist](M3-IPHONE-MODE.md). No physical Mac app launch has yet been reported; the device gate remains open.
