@@ -130,6 +130,30 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
   send(viewer, { type: 'control-request' });
   assert.match((await missingCompanion).message, /not configured/);
 
+  // A viewer cannot see or launch host applications merely by pairing.
+  const appsDenied = receive(viewer, 'error');
+  send(viewer, { type:'app-list' });
+  assert.match((await appsDenied).message, /not approved/);
+  const launchDenied = receive(viewer, 'error');
+  send(viewer, { type:'app-launch', id:'a'.repeat(24) });
+  assert.match((await launchDenied).message, /not approved/);
+  const unpairedDenied = receive(stranger, 'error');
+  send(stranger, { type:'app-list' });
+  assert.match((await unpairedDenied).message, /paired phone/);
+  const spoofApprovalDenied = receive(viewer, 'error');
+  send(viewer, { type:'app-access-approve' });
+  assert.match((await spoofApprovalDenied).message, /Mac host/);
+  const hostListingDenied = receive(host, 'error');
+  send(host, { type:'app-list' });
+  assert.match((await hostListingDenied).message, /paired phone/);
+  // Non-macOS CI explicitly denies positive app access. Positive launch and
+  // dialog checks require a physical Mac host test.
+  if (process.platform !== 'darwin') {
+    const unsupported = receive(viewer, 'error');
+    send(viewer, { type:'app-access-request' });
+    assert.match((await unsupported).message, /Mac host/);
+  }
+
   const badSignalMessage = receive(host, 'error');
   send(host, { type: 'signal', payload: { type: 'offer', id: 'invalid', sdp: { type: 'offer', sdp: '' } } });
   assert.match((await badSignalMessage).message, /Invalid signal/);

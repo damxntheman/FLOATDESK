@@ -23,3 +23,7 @@ Report vulnerabilities privately through GitHub's private vulnerability reportin
 - WebRTC uses browser security and encrypted media transport, but our prototype's pairing model is not a complete, independently reviewed identity system.
 
 Never use this preview to control someone else's computer or capture their screen without explicit authorization.
+
+## M3 Mac application action boundary
+
+M3 is **not a general remote command executor**. The phone may request Mac-owner approval to list installed application names and launch a chosen app by an opaque ID matched to a fresh local catalog. The host approves only through a Mac localhost browser session. The permission is independent of touch control and revokes on disconnect, session stop, or expiry. Mac executable paths, shell access and file contents are never disclosed by this feature. Mac launches use /usr/bin/open and verified bundle paths without shell evaluation. App launching still runs software on your Mac, so use only with trusted devices on a trusted LAN. No internet port forwarding.

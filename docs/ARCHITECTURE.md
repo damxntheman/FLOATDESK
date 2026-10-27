@@ -1,5 +1,9 @@
 # Architecture and non-goals
 
+## M3: owner-approved Mac app launcher bridge
+
+M3 introduces a separate signaling capability: phone requests app access, the local Mac host approves, the phone fetches a bounded catalog, and may launch entries identified only by an opaque ID. The Mac resolves each launch ID against its own freshly enumerated installed-app catalog, using macOS open via execFile **without shell evaluation or phone-provided paths**. Permission expires in five minutes or on disconnect, and is revocable. The phone UI is currently Safari. See [M3 scope](M3-IPHONE-MODE.md).
+
 ## Product vision
 
 FLOATDESK proposes a phone-first remote desktop experience. The core interactions are full-view direct touch, floating view-only PiP when the phone is used for other tasks, and return to an authenticated session without an unnecessary second login.

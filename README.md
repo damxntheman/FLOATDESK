@@ -25,6 +25,10 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 
 **M2 device update (2026-10-26):** The owner confirmed Exit & revoke works and phone-to-Mac touch positions are accurate after the corrective build. A follow-up adjustment restores an **automatic, low-refresh Mac whole-screen preview** (with Pause/Resume), reserves a dedicated top control strip on the phone so no part of the remote desktop is covered in landscape, and removes the temporary tap marker. These newest UI changes require device verification; streaming and long-term security are still experimental. See [M2 diagnostics](docs/M2-TOUCH-CONTROL.md) and [issue #16](https://github.com/damxntheman/FLOATDESK/issues/16).
 
+## M3: iPhone Mode Mac app launcher (experimental)
+
+A paired iPhone can now request a **separate, five-minute Mac-approved capability** to browse names of installed Mac apps and launch them from touch-friendly cards. **Screen streaming is not required** for listing/launching. This is a native-feeling Safari interface, not a native iOS application or a universal macOS app converter. See [M3 device checks](docs/M3-IPHONE-MODE.md).
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

@@ -20,6 +20,15 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M3: phone-native-feeling app control
+
+- [x] M3 source: iPhone-style Mac app catalog with owner-approved five-minute session capability, opaque IDs and local Mac launch.
+- [x] Protocol and browser unit tests for app consent, revocation and role checks.
+- [ ] **Physical MacBook M1 + iPhone 16 gate:** verify permission, real app catalog, Finder launch, revocation, Desktop Mode regression.
+- [ ] Add authorized-folder read-only Files Mode (separate permission) and then tested file operations.
+- [ ] Research app/window metadata and supported app-level controls before promising universal UI conversion.
+- [ ] Profile native Mac/iPhone streaming prototype against existing M2 latency before migration.
+
 ## M2: minimum safe remote interaction
 
 - [x] Mac-only **research click agent** implemented in Swift source; compile, Accessibility permission and real device tests pending.
