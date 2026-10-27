@@ -18,7 +18,8 @@ function catalogId(path) {
 }
 export function discoverMacApps({
   platform = process.platform,
-  roots = defaultRoots()
+  roots = defaultRoots(),
+  includeFinder = true
 } = {}) {
   if (platform !== 'darwin') return [];
   const apps = [];
@@ -46,7 +47,7 @@ export function discoverMacApps({
   // Finder is a protected first-party app bundle outside /Applications.
   // Add only this known path; do not enumerate all CoreServices helpers.
   const finderPath = '/System/Library/CoreServices/Finder.app';
-  if (!seen.has(finderPath)) {
+  if (includeFinder && !seen.has(finderPath)) {
     try {
       if (lstatSync(finderPath).isDirectory()) {
         apps.push({ id: catalogId(finderPath), name: 'Finder', path: finderPath });
