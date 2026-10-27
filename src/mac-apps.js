@@ -6,6 +6,7 @@ import { homedir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
+import { publicExperience } from './app-experiences.js';
 
 const execFileAsync = promisify(execFileCallback);
 export const defaultRoots = (home = homedir()) => [
@@ -59,7 +60,7 @@ export function discoverMacApps({
 }
 
 export function publicCatalog(apps) {
-  return apps.map(({ id, name }) => ({ id, name }));
+  return apps.map(publicExperience);
 }
 
 export async function launchCatalogApp(id, {

@@ -11,6 +11,8 @@ import { RecoveryThrottle } from './recovery.js';
 import { ControlGrant } from './control.js';
 import { AppAccessGrant } from './app-access.js';
 import { discoverMacApps, publicCatalog, launchCatalogApp } from './mac-apps.js';
+import { TerminalPreviewGrant } from './terminal-grant.js';
+import { runTerminalPreview } from './terminal-preview.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || '8787');
@@ -35,6 +37,7 @@ const recoveryThrottle = new RecoveryThrottle();
 const controlGrants = new WeakMap();
 const controlAgents = new WeakMap();
 const appGrants = new WeakMap();
+const terminalGrants = new WeakMap();
 const nativeAgentPath = process.env.FLOATDESK_AGENT_BIN || '';
 function appGrantFor(room) {
   if (!appGrants.has(room)) appGrants.set(room, new AppAccessGrant());
@@ -50,6 +53,21 @@ function revokeAppAccess(room, reason = 'Mac app access is off.') {
   const previously = grant.phase;
   grant.revoke();
   if (previously !== 'off') appStatus(room, 'off', reason);
+}
+function terminalGrantFor(room) {
+  if (!terminalGrants.has(room)) terminalGrants.set(room, new TerminalPreviewGrant());
+  return terminalGrants.get(room);
+}
+function terminalStatus(room, state, message = '') {
+  send(room.host, { type:'terminal-state', state, message });
+  send(room.viewer, { type:'terminal-state', state, message });
+}
+function revokeTerminal(room, reason = 'Terminal Preview disabled.') {
+  if (!room) return;
+  const grant = terminalGrantFor(room);
+  const previous = grant.phase;
+  grant.revoke();
+  if (previous !== 'off') terminalStatus(room, 'off', reason);
 }
 function grantFor(room) {
   if (!controlGrants.has(room)) controlGrants.set(room, new ControlGrant());
@@ -193,6 +211,7 @@ wss.on('connection', (ws, req) => {
           // An old socket is displaced. Never transfer an input grant across sockets.
           revokeControl(record, 'Touch control revoked when a device resumed its session.');
           revokeAppAccess(record, 'Mac app access revoked when a device resumed its session.');
+          revokeTerminal(record, 'Terminal Preview disabled when device resumed.');
           previous.close(4001, 'Session moved');
         }
         send(ws, { type: 'resumed', role: data.role, code: record.code, expiresAt: record.expiresAt });
@@ -275,6 +294,50 @@ wss.on('connection', (ws, req) => {
             }
           })
           .catch(() => failure(ws, 'Mac could not open that app. Confirm it is installed and accessible.'));
+      } else if (data.type === 'terminal-request') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') {
+          throw new Error('Only the paired phone can request Terminal Preview.');
+        }
+        const room = entry.record;
+        if (!room.host || room.host.readyState !== WebSocket.OPEN || process.platform !== 'darwin') {
+          throw new Error('Terminal Preview requires a connected Mac host.');
+        }
+        terminalGrantFor(room).request();
+        terminalStatus(room, 'requested', 'Phone requests read-only Terminal Preview. Approve on Mac within 30 seconds.');
+      } else if (data.type === 'terminal-approve') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'host' || !isLocalPeer(ip)) {
+          throw new Error('Terminal Preview can only be approved on the local Mac.');
+        }
+        const room = entry.record;
+        if (!room.viewer || room.viewer.readyState !== WebSocket.OPEN) {
+          throw new Error('Terminal Preview requires a paired, connected phone.');
+        }
+        terminalGrantFor(room).approve();
+        terminalStatus(room, 'active', 'Read-only Mac diagnostics approved for 3 minutes; this is not a shell.');
+      } else if (data.type === 'terminal-revoke') {
+        const entry = registry.forClient(ws);
+        if (!entry || !['host', 'viewer'].includes(entry.role) ||
+            (entry.role === 'host' && !isLocalPeer(ip))) {
+          throw new Error('Only paired devices may revoke Terminal Preview.');
+        }
+        revokeTerminal(entry.record, 'Terminal Preview permission revoked.');
+      } else if (data.type === 'terminal-command') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') {
+          throw new Error('Only paired phone may request Terminal Preview output.');
+        }
+        const room = entry.record;
+        if (!room.host || room.host.readyState !== WebSocket.OPEN) {
+          throw new Error('Mac host disconnected.');
+        }
+        const grant = terminalGrantFor(room);
+        grant.check();
+        // Allowlist validator runs before using the rate-limited capability.
+        const lines = runTerminalPreview(data.command);
+        grant.useAction();
+        send(ws, { type:'terminal-output', command:data.command, lines });
       } else if (data.type === 'control-request') {
         const entry = registry.forClient(ws);
         if (!entry || entry.role !== 'viewer') throw new Error('Only the paired iPhone viewer can request control.');
@@ -341,6 +404,7 @@ wss.on('connection', (ws, req) => {
         if (entry) {
           revokeControl(entry.record, 'Session ended.');
           revokeAppAccess(entry.record, 'Session ended.');
+          revokeTerminal(entry.record, 'Session ended.');
         }
         const peer = registry.peer(ws);
         registry.stop(ws);
@@ -356,6 +420,7 @@ wss.on('connection', (ws, req) => {
     if (entry) {
       revokeControl(entry.record, 'A device disconnected; touch control revoked.');
       revokeAppAccess(entry.record, 'A device disconnected; Mac app access revoked.');
+      revokeTerminal(entry.record, 'A device disconnected; Terminal Preview revoked.');
       if (entry.role === 'host') entry.record.captureSurface = null;
       const other = entry.role === 'host' ? entry.record.viewer : entry.record.host;
       send(other, { type: 'peer-disconnected' });
@@ -370,9 +435,11 @@ const housekeeping = setInterval(() => {
     const grant = grantFor(room);
     if (grant.expired()) revokeControl(room, 'Touch control approval expired.');
     if (appGrantFor(room).expired()) revokeAppAccess(room, 'Mac app access expired. Request permission again.');
+    if (terminalGrantFor(room).expired()) revokeTerminal(room, 'Terminal Preview expired. Request fresh approval.');
     if (now >= room.expiresAt) {
       revokeControl(room, 'Session expired.');
       revokeAppAccess(room, 'Session expired.');
+      revokeTerminal(room, 'Session expired.');
       send(room.host, { type: 'session-ended' });
       send(room.viewer, { type: 'session-ended' });
     }
