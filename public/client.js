@@ -7,7 +7,12 @@ const buttons = {
   requestControl: $('requestControl'), releaseControl: $('releaseControl'), approveControl: $('approveControl'), revokeControl: $('revokeControl'),
   expandView: $('expandView'), exitView: $('exitView'), toggleHostPreview: $('toggleHostPreview'),
   requestApps: $('requestApps'), releaseApps: $('releaseApps'), approveApps: $('approveApps'),
-  revokeApps: $('revokeApps'), openDesktop: $('openDesktop')
+  revokeApps: $('revokeApps'), openDesktop: $('openDesktop'),
+  approveTerminal: $('approveTerminal'), revokeTerminal: $('revokeTerminal'),
+  requestTerminal: $('requestTerminal'), releaseTerminal: $('releaseTerminal'),
+  closeTerminal: $('closeTerminal'), runTerminalCommand: $('runTerminalCommand'),
+  cmdHelp: $('cmdHelp'), cmdDate: $('cmdDate'), cmdUptime: $('cmdUptime'),
+  cmdSystem: $('cmdSystem')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -27,7 +32,71 @@ let captureRequestId = 0;
 let capturePending = false;
 let controlPhase = 'off';
 let appAccessPhase = 'off';
+let terminalPhase = 'off';
 const appPanel = $('iphoneModePanel');
+const appHome = $('iphoneModeHome');
+const terminalPanel = $('terminalPanel');
+const transcript = $('terminalTranscript');
+const terminalForm = $('terminalForm');
+const terminalInput = $('terminalCommand');
+const terminalCommands = new Set(['help', 'date', 'uptime', 'system']);
+function addTerminalLine(text, kind = '') {
+  const node = document.createElement('p');
+  node.textContent = String(text).slice(0, 240);
+  if (kind) node.className = kind;
+  transcript.append(node);
+  while (transcript.children.length > 90) {
+    transcript.firstElementChild.remove();
+  }
+  transcript.scrollTop = transcript.scrollHeight;
+}
+function openTerminalExperience() {
+  if (identity?.role !== 'viewer' || appAccessPhase !== 'active') return;
+  appHome.hidden = true;
+  terminalPanel.hidden = false;
+  if (terminalPhase !== 'active') {
+    $('terminalStatus').textContent = 'Read-only Terminal Preview requires separate Mac approval.';
+  }
+}
+function closeTerminalExperience() {
+  terminalPanel.hidden = true;
+  appHome.hidden = false;
+}
+function showTerminalState(phase, message = '') {
+  const previous = terminalPhase;
+  terminalPhase = phase;
+  const viewer = identity?.role === 'viewer';
+  const host = identity?.role === 'host';
+  buttons.approveTerminal.disabled = !host || phase !== 'requested';
+  buttons.revokeTerminal.disabled = !host || phase === 'off';
+  buttons.requestTerminal.disabled = !viewer || phase !== 'off';
+  buttons.releaseTerminal.disabled = !viewer || phase === 'off';
+  terminalInput.disabled = !viewer || phase !== 'active';
+  buttons.runTerminalCommand.disabled = !viewer || phase !== 'active';
+  for (const key of ['cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem']) {
+    buttons[key].disabled = !viewer || phase !== 'active';
+  }
+  $('terminalStatus').textContent = message || (phase === 'active'
+    ? 'Read-only Mac diagnostics approved for 3 minutes.'
+    : phase === 'requested' ? 'Waiting for approval on your Mac.'
+    : 'Terminal Preview is off; request permission from your Mac.');
+  if (phase === 'off' && previous !== 'off') {
+    transcript.replaceChildren();
+    addTerminalLine('Terminal Preview ended. Output cleared.');
+  }
+}
+function sendTerminalCommand(value) {
+  if (identity?.role !== 'viewer' || terminalPhase !== 'active') return;
+  const command = String(value ?? '').trim().toLowerCase();
+  if (!terminalCommands.has(command)) {
+    addTerminalLine('Only help, date, uptime and system are available in read-only Preview.', 'command-error');
+    return;
+  }
+  if (send({ type:'terminal-command', command })) {
+    addTerminalLine('> ' + command, 'command-line');
+    terminalInput.value = '';
+  }
+}
 const appsGrid = $('appsGrid');
 function showAppPlaceholder(message) {
   const text = document.createElement('p');
@@ -57,6 +126,10 @@ function renderAppCatalog(apps) {
     tile.append(glyph, label);
     tile.addEventListener('click', () => {
       if (identity?.role !== 'viewer' || appAccessPhase !== 'active') return;
+      if (app.experience === 'mobile-terminal-preview') {
+        openTerminalExperience();
+        return;
+      }
       if (send({ type:'app-launch', id:app.id })) {
         $('appLaunchStatus').textContent = 'Opening ' + app.name + ' on the Mac…';
       }
@@ -81,6 +154,7 @@ function showAppAccessState(phase, message = '') {
     'Ask the Mac owner to approve app access to see installed applications.'
   );
   if (phase === 'off' && previous !== 'off') {
+    closeTerminalExperience();
     showAppPlaceholder('Mac app access ended. Request permission again.');
     $('appLaunchStatus').textContent = '';
   }
@@ -190,6 +264,7 @@ function remember(value) {
   buttons.openDesktop.disabled = !value || value.role !== 'viewer' || !video.srcObject;
   showControlState(controlPhase);
   showAppAccessState(appAccessPhase);
+  showTerminalState(terminalPhase);
 }
 function send(data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) { status('Signaling unavailable. Reconnecting…'); return false; }
@@ -228,6 +303,8 @@ function stopCapture(message = 'Screen sharing stopped.') {
 function resetSession() {
   showControlState('off', 'Remote control off.');
   showAppAccessState('off', 'Session ended; app access revoked.');
+  showTerminalState('off', 'Session ended; Terminal Preview revoked.');
+  closeTerminalExperience();
   // Ending a session must also invalidate any pending capture permission picker.
   captureRequestId++;
   capturePending = false;
@@ -257,6 +334,9 @@ function connect() {
     }
     if (identity?.role === 'viewer' && appAccessPhase !== 'off') {
       showAppAccessState('off', 'Connection lost; Mac app access needs fresh approval.');
+    }
+    if (identity?.role === 'viewer' && terminalPhase !== 'off') {
+      showTerminalState('off', 'Connection lost; Terminal Preview disabled.');
     }
     status('Signaling disconnected. Retrying…');
     clearTimeout(reconnectTimer);
@@ -400,6 +480,12 @@ async function handleMessage(data) {
     if (identity?.role === 'viewer' && appAccessPhase === 'active') {
       $('appLaunchStatus').textContent = data.name + ' was opened on your Mac.';
     }
+  } else if (data.type === 'terminal-state') {
+    showTerminalState(data.state, data.message);
+  } else if (data.type === 'terminal-output') {
+    if (identity?.role === 'viewer' && terminalPhase === 'active' && Array.isArray(data.lines)) {
+      for (const line of data.lines.slice(0, 8)) addTerminalLine(line);
+    }
   } else if (data.type === 'recovery-request-accepted') {
     status('Refresh accepted. Waiting for a new WebRTC video connection…');
   } else if (data.type === 'signal') {
@@ -407,6 +493,7 @@ async function handleMessage(data) {
   } else if (data.type === 'peer-disconnected') {
     showControlState('off', 'Other device disconnected. Control revoked.');
     showAppAccessState('off', 'Mac disconnected. App access revoked.');
+    showTerminalState('off', 'Mac disconnected. Terminal Preview revoked.');
     if (identity && identity.role === 'host') viewerReady = false;
     closePeer();
     status('Other device disconnected. Session credentials retained.');
@@ -423,7 +510,10 @@ async function handleMessage(data) {
     status('Host ended this session.');
   } else if (data.type === 'error') {
     status(data.message);
-    if (identity?.role === 'viewer') $('appLaunchStatus').textContent = data.message;
+    if (identity?.role === 'viewer') {
+      if (!terminalPanel.hidden) addTerminalLine(data.message, 'command-error');
+      else $('appLaunchStatus').textContent = data.message;
+    }
     if (/authentication failed|Session unavailable/i.test(data.message)) resetSession();
   }
 }
@@ -509,6 +599,19 @@ buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
   if (send({ type: 'request-video' })) status('Requesting new video from the Mac…');
 });
+buttons.requestTerminal.addEventListener('click', () => send({ type:'terminal-request' }));
+buttons.releaseTerminal.addEventListener('click', () => send({ type:'terminal-revoke' }));
+buttons.approveTerminal.addEventListener('click', () => send({ type:'terminal-approve' }));
+buttons.revokeTerminal.addEventListener('click', () => send({ type:'terminal-revoke' }));
+buttons.closeTerminal.addEventListener('click', closeTerminalExperience);
+terminalForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  sendTerminalCommand(terminalInput.value);
+});
+for (const command of terminalCommands) {
+  const id = 'cmd' + command[0].toUpperCase() + command.slice(1);
+  buttons[id].addEventListener('click', () => sendTerminalCommand(command));
+}
 buttons.requestApps.addEventListener('click', () => send({ type:'app-access-request' }));
 buttons.releaseApps.addEventListener('click', () => send({ type:'app-access-revoke' }));
 buttons.approveApps.addEventListener('click', () => send({ type:'app-access-approve' }));
