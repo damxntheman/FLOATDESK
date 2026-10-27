@@ -27,3 +27,9 @@ Never use this preview to control someone else's computer or capture their scree
 ## M3 Mac application action boundary
 
 M3 is **not a general remote command executor**. The phone may request Mac-owner approval to list installed application names and launch a chosen app by an opaque ID matched to a fresh local catalog. The host approves only through a Mac localhost browser session. The permission is independent of touch control and revokes on disconnect, session stop, or expiry. Mac executable paths, shell access and file contents are never disclosed by this feature. Mac launches use /usr/bin/open and verified bundle paths without shell evaluation. App launching still runs software on your Mac, so use only with trusted devices on a trusted LAN. No internet port forwarding.
+
+## M4 read-only Terminal Preview and Files groundwork
+
+A Terminal.app tile uses a **distinct Mac-local approval**, for three minutes, to request allowlisted read-only diagnostics only: help, date, uptime, system. It does **not** spawn `sh`, `bash`, `zsh`, `osascript`, or any PTY, and cannot run arbitrary commands. The preview grants no file access or remote input rights and revokes on disconnect, stop, expiry or explicit revoke. Phone output uses text-only DOM insertion with bounded output.
+
+The Files Mode directory helper is **not reachable from signaling**. It contains only a safe, read-only metadata scanner for a future *Mac-owner-selected folder*. It rejects absolute phone paths, traversal and symlinks, and hides dotfiles. Do not expose any Files API, permit a remote path selector, or add mutations until a local Mac picker, independent approval and physical tests are completed.

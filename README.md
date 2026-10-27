@@ -29,6 +29,10 @@ Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone
 
 A paired iPhone can now request a **separate, five-minute Mac-approved capability** to browse names of installed Mac apps and launch them from touch-friendly cards. **Screen streaming is not required** for listing/launching. This is a native-feeling Safari interface, not a native iOS application or a universal macOS app converter. See [M3 device checks](docs/M3-IPHONE-MODE.md).
 
+## M4: App Experiences + phone-friendly Terminal Preview
+
+In the next research increment, Apple's built-in Terminal app tile opens a **phone-native, mouse-free preview** instead of immediately launching a desktop window. The preview shows genuine, read-only Mac diagnostics with a separate **three-minute Mac approval**: `help`, `date`, `uptime` and `system`. This is **not a real shell**: no `ls`, `cd`, `git`, scripts, files or arbitrary commands execute. Other applications still use the desktop launcher fallback. Read-only Files Mode path-containment code is implemented **only as an internal module**, with no network API or filesystem permission until an owner-operated native folder picker is designed. See [M4 scope](docs/M4-APP-EXPERIENCES.md). Physical testing remains **deferred at owner request**.
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

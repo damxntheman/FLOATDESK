@@ -20,6 +20,16 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M4: App Experience Engine and Terminal Preview
+
+- [x] Declarative app experience descriptor: known canonical macOS Terminal bundle → touch-native Terminal Preview; unknown apps → Desktop Mode / existing launch fallback.
+- [x] M4 source: read-only Mac diagnostics commands with explicit **separate three-minute Mac-local approval** and no shell spawn / arbitrary commands.
+- [x] Mobile Terminal Preview UI with command buttons, iPhone keyboard form, bounded text output, revocation and reconnect cleanup.
+- [x] Internal, **not exposed over network**: metadata-only Files Mode directory containment, hidden/symlink rejection, max entries and traversal tests.
+- [ ] Owner physical tests **deferred**: Mac + iPhone Terminal preview and earlier M3 app-launch gate both remain pending.
+- [ ] Decide native Mac companion permission/PTY architecture and folder picker before implementing full shell or Files access.
+- [ ] Native iPhone frontend and complete redesign with Opus only after the basic app interactions have been proven on devices.
+
 ## M3: phone-native-feeling app control
 
 - [x] M3 source: iPhone-style Mac app catalog with owner-approved five-minute session capability, opaque IDs and local Mac launch.
