@@ -9,6 +9,8 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { SessionRegistry } from './registry.js';
 import { RecoveryThrottle } from './recovery.js';
 import { ControlGrant } from './control.js';
+import { AppAccessGrant } from './app-access.js';
+import { discoverMacApps, publicCatalog, launchCatalogApp } from './mac-apps.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || '8787');
@@ -32,7 +34,23 @@ const attempts = new Map();
 const recoveryThrottle = new RecoveryThrottle();
 const controlGrants = new WeakMap();
 const controlAgents = new WeakMap();
+const appGrants = new WeakMap();
 const nativeAgentPath = process.env.FLOATDESK_AGENT_BIN || '';
+function appGrantFor(room) {
+  if (!appGrants.has(room)) appGrants.set(room, new AppAccessGrant());
+  return appGrants.get(room);
+}
+function appStatus(room, state, message = '') {
+  send(room.host, { type: 'app-access-state', state, message });
+  send(room.viewer, { type: 'app-access-state', state, message });
+}
+function revokeAppAccess(room, reason = 'Mac app access is off.') {
+  if (!room) return;
+  const grant = appGrantFor(room);
+  const previously = grant.phase;
+  grant.revoke();
+  if (previously !== 'off') appStatus(room, 'off', reason);
+}
 function grantFor(room) {
   if (!controlGrants.has(room)) controlGrants.set(room, new ControlGrant());
   return controlGrants.get(room);
@@ -174,6 +192,7 @@ wss.on('connection', (ws, req) => {
         if (previous && previous !== ws && previous.readyState === WebSocket.OPEN) {
           // An old socket is displaced. Never transfer an input grant across sockets.
           revokeControl(record, 'Touch control revoked when a device resumed its session.');
+          revokeAppAccess(record, 'Mac app access revoked when a device resumed its session.');
           previous.close(4001, 'Session moved');
         }
         send(ws, { type: 'resumed', role: data.role, code: record.code, expiresAt: record.expiresAt });
@@ -207,6 +226,55 @@ wss.on('connection', (ws, req) => {
         revokeControl(room, 'Touch control revoked because capture changed.');
         room.captureSurface = data.active ? (data.surface === 'monitor' ? 'monitor' : 'other') : null;
         send(registry.peer(ws), { type: 'capture-state', active: data.active });
+      } else if (data.type === 'app-access-request') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') throw new Error('Only the paired phone can request Mac app access.');
+        const room = entry.record;
+        if (!room.host || process.platform !== 'darwin') {
+          throw new Error('iPhone Mode app control requires a connected Mac host.');
+        }
+        appGrantFor(room).request();
+        appStatus(room, 'requested', 'Phone requests Mac app access. Approve locally within 30 seconds.');
+      } else if (data.type === 'app-access-approve') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'host' || !isLocalPeer(ip)) {
+          throw new Error('Only the connected Mac host can approve app access locally.');
+        }
+        const room = entry.record;
+        if (!room.viewer) throw new Error('A paired phone is required.');
+        appGrantFor(room).approve();
+        appStatus(room, 'active', 'Mac approved application access for 5 minutes.');
+      } else if (data.type === 'app-access-revoke') {
+        const entry = registry.forClient(ws);
+        if (!entry || !['host','viewer'].includes(entry.role) ||
+            (entry.role === 'host' && !isLocalPeer(ip))) {
+          throw new Error('Only the paired phone or local Mac host can revoke app access.');
+        }
+        revokeAppAccess(entry.record, 'Mac app access revoked.');
+      } else if (data.type === 'app-list') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') throw new Error('Only the paired phone can browse Mac apps.');
+        appGrantFor(entry.record).check();
+        send(ws, { type:'app-list-result', apps:publicCatalog(discoverMacApps()) });
+      } else if (data.type === 'app-launch') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') throw new Error('Only the paired phone can launch Mac apps.');
+        const room = entry.record;
+        if (!room.host || room.host.readyState !== WebSocket.OPEN) {
+          throw new Error('Mac host has disconnected.');
+        }
+        appGrantFor(room).useAction();
+        // Resolve the ID against a *fresh local catalog*. The phone never
+        // sends launch paths, shell commands or executable arguments.
+        const catalog = discoverMacApps();
+        const id = data.id;
+        launchCatalogApp(id, { apps:catalog })
+          .then(({ id:launchedId, name }) => {
+            if (registry.forClient(ws)?.record === room && appGrantFor(room).phase === 'active') {
+              send(ws, { type:'app-launch-result', id:launchedId, name });
+            }
+          })
+          .catch(() => failure(ws, 'Mac could not open that app. Confirm it is installed and accessible.'));
       } else if (data.type === 'control-request') {
         const entry = registry.forClient(ws);
         if (!entry || entry.role !== 'viewer') throw new Error('Only the paired iPhone viewer can request control.');
@@ -270,7 +338,10 @@ wss.on('connection', (ws, req) => {
         send(ws, { type: 'recovery-request-accepted' });
       } else if (data.type === 'stop') {
         const entry = registry.forClient(ws);
-        if (entry) revokeControl(entry.record, 'Session ended.');
+        if (entry) {
+          revokeControl(entry.record, 'Session ended.');
+          revokeAppAccess(entry.record, 'Session ended.');
+        }
         const peer = registry.peer(ws);
         registry.stop(ws);
         send(peer, { type: 'session-ended' });
@@ -284,6 +355,7 @@ wss.on('connection', (ws, req) => {
     const entry = registry.detach(ws);
     if (entry) {
       revokeControl(entry.record, 'A device disconnected; touch control revoked.');
+      revokeAppAccess(entry.record, 'A device disconnected; Mac app access revoked.');
       if (entry.role === 'host') entry.record.captureSurface = null;
       const other = entry.role === 'host' ? entry.record.viewer : entry.record.host;
       send(other, { type: 'peer-disconnected' });
@@ -297,8 +369,10 @@ const housekeeping = setInterval(() => {
   for (const room of registry.rooms.values()) {
     const grant = grantFor(room);
     if (grant.expired()) revokeControl(room, 'Touch control approval expired.');
+    if (appGrantFor(room).expired()) revokeAppAccess(room, 'Mac app access expired. Request permission again.');
     if (now >= room.expiresAt) {
       revokeControl(room, 'Session expired.');
+      revokeAppAccess(room, 'Session expired.');
       send(room.host, { type: 'session-ended' });
       send(room.viewer, { type: 'session-ended' });
     }
