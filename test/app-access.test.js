@@ -42,7 +42,7 @@ test('discover only top-level .app directories and reveal names without paths', 
   symlinkSync(join(root, 'Finder.app'), join(root, 'Alias.app'));
   const apps = discoverMacApps({ platform:'darwin', roots:[root,join(root,'missing')], includeFinder:false });
   assert.deepEqual(apps.map(x => x.name), ['ABC','Finder']);
-  assert.equal(publicCatalog(apps).every(x => Object.keys(x).sort().join(',') === 'id,name'), true);
+  assert.equal(publicCatalog(apps).every(x => Object.keys(x).sort().join(',') === 'experience,id,name'), true);
   assert.equal(apps.length, 2);
   assert.equal(discoverMacApps({ platform:'linux', roots:[root] }).length, 0);
 });

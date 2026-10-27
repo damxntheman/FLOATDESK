@@ -1,5 +1,15 @@
 # Architecture and non-goals
 
+## M4: App Experience Engine (non-universal adapters)
+
+A pure server-side app resolver recognizes ONLY the canonical built-in macOS Terminal bundle at `/System/Applications/Utilities/Terminal.app`. Public app catalog entries include an `experience` hint (`mobile-terminal-preview` or `desktop-launch`). That hint controls UI routing, **never grants authorization**; the Mac server independently enforces all operation permissions.
+
+The first phone-native adapter, **Terminal Preview**, intentionally does **not** spawn a shell, open a PTY, attach to Terminal.app windows or run arbitrary Mac commands. It exposes only allowlisted, read-only system diagnostics. A separate `TerminalPreviewGrant` per pairing requires the phone's `terminal-request`, then Mac-local `terminal-approve` within 30 seconds, lasts 3 minutes, rate-limits queries, and revokes on either-device request, disconnect, session end or expiry. Existing application launch and remote-click capabilities are independent.
+
+`src/files-policy.js` prepares an isolated read-only **directory metadata listing** API for a future owner-selected root; it rejects traversal, hidden paths, symlinks and absolute phone paths. It is currently **not imported by the server**. No browser message can invoke it or read arbitrary Mac directories. Do not expose Files until the native owner folder picker and separate file permission gate are in place.
+
+See [M4 technical scope and deferred hardware checks](M4-APP-EXPERIENCES.md).
+
 ## M3: owner-approved Mac app launcher bridge
 
 M3 introduces a separate signaling capability: phone requests app access, the local Mac host approves, the phone fetches a bounded catalog, and may launch entries identified only by an opaque ID. The Mac resolves each launch ID against its own freshly enumerated installed-app catalog, using macOS open via execFile **without shell evaluation or phone-provided paths**. Permission expires in five minutes or on disconnect, and is revocable. The phone UI is currently Safari. See [M3 scope](M3-IPHONE-MODE.md).

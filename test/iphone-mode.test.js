@@ -28,7 +28,10 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
     'requestControl','releaseControl','expandView','exitView','immersiveToolbar',
     'previewSource','hostPreview','hostPreviewNote','toggleHostPreview',
     'iphoneModePanel','appsGrid','appAccessStatus','appLaunchStatus',
-    'requestApps','releaseApps','approveApps','revokeApps','openDesktop'
+    'requestApps','releaseApps','approveApps','revokeApps','openDesktop',
+    'iphoneModeHome', 'terminalPanel', 'terminalTranscript', 'terminalForm', 'terminalCommand',
+    'terminalStatus', 'requestTerminal', 'releaseTerminal', 'approveTerminal', 'revokeTerminal',
+    'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem'
   ];
   ids.forEach(id=>els.set(id,el()));
   const stored = new Map();
@@ -81,9 +84,10 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
   await receive({type:'app-list-result',apps:[
     {id,name:'Finder'},
     {id:'b'.repeat(24),name:'<img src=x onerror=alert(1)>'},
+    {id:'c'.repeat(24),name:'Terminal',experience:'mobile-terminal-preview'},
     {id:'../../bin/sh',name:'Not allowed'}
   ]});
-  assert.equal(find('appsGrid').children.length,2,'rejects invalid app IDs');
+  assert.equal(find('appsGrid').children.length,3,'rejects invalid app IDs');
   assert.equal(find('appsGrid').children[1].children[1].textContent,'<img src=x onerror=alert(1)>',
     'app names inserted safely as plain text, never HTML');
   find('appsGrid').children[0].click();
@@ -91,6 +95,35 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
   assert.match(find('appLaunchStatus').textContent,/Opening Finder/);
   await receive({type:'app-launch-result',id,name:'Finder'});
   assert.match(find('appLaunchStatus').textContent,/opened on your Mac/);
+  // The canonical Terminal tile opens a phone-native Preview instead of
+  // launching Terminal.app in the desktop. Diagnostics remain separately gated.
+  const beforeTerminal=sent.length;
+  find('appsGrid').children[2].click();
+  assert.equal(find('terminalPanel').hidden,false);
+  assert.equal(find('iphoneModeHome').hidden,true);
+  assert.equal(sent.length,beforeTerminal,'opening phone UI does not issue Mac commands');
+  assert.equal(find('terminalCommand').disabled,true);
+  find('requestTerminal').click();
+  assert.deepEqual(sent.at(-1),{type:'terminal-request'});
+  await receive({type:'terminal-state',state:'requested'});
+  assert.equal(find('terminalCommand').disabled,true);
+  await receive({type:'terminal-state',state:'active'});
+  assert.equal(find('terminalCommand').disabled,false);
+  find('terminalCommand').value='ls';
+  const beforeUnsafe=sent.length;
+  find('terminalForm').listeners.submit({preventDefault(){}});
+  assert.equal(sent.length,beforeUnsafe,'unsupported shell commands are blocked in UI');
+  find('terminalCommand').value='uptime';
+  find('terminalForm').listeners.submit({preventDefault(){}});
+  assert.deepEqual(sent.at(-1),{type:'terminal-command',command:'uptime'});
+  await receive({type:'terminal-output',lines:['Mac uptime: 1d 3h 5m']});
+  assert.match(find('terminalTranscript').children.at(-1).textContent,/Mac uptime:/);
+  await receive({type:'terminal-state',state:'off'});
+  assert.equal(find('terminalCommand').disabled,true);
+  assert.equal(find('terminalTranscript').children.length,1,'revocation clears diagnostics output');
+  find('closeTerminal').click();
+  assert.equal(find('terminalPanel').hidden,true);
+  assert.equal(find('iphoneModeHome').hidden,false);
   await receive({type:'app-access-state',state:'off',message:'Permission expired'});
   assert.equal(find('appsGrid').children.length,1);
   assert.equal(find('requestApps').disabled,false);

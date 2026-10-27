@@ -115,3 +115,7 @@ No macOS-only observation proves mobile behavior. Native touchscreen input is **
 ## M3 iPhone Mode first physical test (pending)
 
 App list and launch have been implemented behind an independent five-minute Mac-local authorization grant. See [M3 device checklist](M3-IPHONE-MODE.md). No physical Mac app launch has yet been reported; the device gate remains open.
+
+## M4 deferred physical acceptance
+
+The iPhone-native Terminal Preview and internal Files Mode safety policy have automated tests but **no physical acceptance**. The owner elected to hold device tests temporarily. When ready, follow [M4 test gates](M4-APP-EXPERIENCES.md), as well as still-open M3 Finder-launch gate and M2 regressions.

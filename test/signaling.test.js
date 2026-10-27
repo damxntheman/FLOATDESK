@@ -154,6 +154,26 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
     assert.match((await unsupported).message, /Mac host/);
   }
 
+  // Terminal has its OWN consent. App permission and pairing cannot
+  // silently authorize Mac diagnostics or arbitrary shell execution.
+  const terminalUnpaired = receive(stranger, 'error');
+  send(stranger, {type:'terminal-command', command:'help'});
+  assert.match((await terminalUnpaired).message,/paired phone/);
+  const terminalDenied = receive(viewer,'error');
+  send(viewer, {type:'terminal-command', command:'help'});
+  assert.match((await terminalDenied).message,/not approved/);
+  const terminalSpoof = receive(viewer,'error');
+  send(viewer, {type:'terminal-approve'});
+  assert.match((await terminalSpoof).message,/local Mac/);
+  const terminalHostDenied = receive(host,'error');
+  send(host, {type:'terminal-command',command:'help'});
+  assert.match((await terminalHostDenied).message,/paired phone/);
+  if (process.platform !== 'darwin') {
+    const unsupported = receive(viewer,'error');
+    send(viewer, {type:'terminal-request'});
+    assert.match((await unsupported).message,/Mac host/);
+  }
+
   const badSignalMessage = receive(host, 'error');
   send(host, { type: 'signal', payload: { type: 'offer', id: 'invalid', sdp: { type: 'offer', sdp: '' } } });
   assert.match((await badSignalMessage).message, /Invalid signal/);

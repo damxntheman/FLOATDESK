@@ -34,6 +34,11 @@
           <p class="hint">A paired iPhone may request access to installed app names and launch an app. This is separate from screen control. Only approve on your own Mac; access expires after 5 minutes.</p>
           <div class="actions"><button id="approveApps" disabled>Allow Mac apps (5 min)</button><button id="revokeApps" disabled>Revoke app access</button></div>
         </div>
+        <div class="control-panel">
+          <h3>iPhone Mode · Terminal Preview</h3>
+          <p class="hint">Experimental read-only Mac system diagnostics. This does not permit running shell commands, scripts or reading files. Separate approval lasts 3 minutes.</p>
+          <div class="actions"><button id="approveTerminal" disabled>Allow Terminal Preview (3 min)</button><button id="revokeTerminal" disabled>Revoke Terminal Preview</button></div>
+        </div>
         <p class="hint">Stop sharing turns off desktop video but keeps your phone paired. Share screen always asks for fresh browser permission. End session disconnects both devices. Capture requires HTTPS or localhost.</p>
       </article>
       <article class="panel" id="viewerPanel">
@@ -51,6 +56,7 @@
       </article>
     </section>
     <section id="iphoneModePanel" class="panel iphone-mode" hidden>
+      <div id="iphoneModeHome">
       <div class="iphone-mode-head">
         <div>
           <p class="eyebrow">FLOATDESK · IPHONE MODE</p>
@@ -68,7 +74,39 @@
       <div class="iphone-mode-section"><h3>Mac applications</h3><span class="iphone-mode-note">Tap an app to open it on your Mac</span></div>
       <div id="appsGrid" class="iphone-app-grid" aria-live="polite"><p class="hint">Apps appear here after approval on your Mac.</p></div>
       <p id="appLaunchStatus" class="hint" role="status" aria-live="polite"></p>
-      <p class="hint">This first proof opens apps on your Mac; it does not run macOS apps directly on your iPhone. Use Desktop Mode to see and interact with the actual Mac window.</p>
+      <p class="hint">Desktop fallback remains available. Only specially supported applications open a phone-native experience.</p>
+      </div>
+      <section id="terminalPanel" class="mobile-terminal" hidden aria-label="FLOATDESK read-only Mac Terminal Preview">
+        <div class="mobile-terminal-head">
+          <button id="closeTerminal" type="button">‹ Apps</button>
+          <div class="mobile-terminal-label">
+            <strong>Terminal</strong>
+            <span>READ-ONLY PREVIEW · NOT A SHELL</span>
+          </div>
+          <span aria-hidden="true" class="terminal-window-dots">● ● ●</span>
+        </div>
+        <p class="hint">Get real Mac diagnostics through a safe allowlist. Commands cannot change files, run applications or execute scripts. This is a stepping stone toward an interactive Terminal experience.</p>
+        <div class="iphone-mode-actions">
+          <button id="requestTerminal" class="primary" disabled>Request Terminal access</button>
+          <button id="releaseTerminal" disabled>Stop Terminal access</button>
+        </div>
+        <p id="terminalStatus" class="hint" role="status" aria-live="polite">Requires separate permission from your Mac.</p>
+        <div id="terminalTranscript" class="terminal-transcript" role="log" aria-live="polite" aria-label="Terminal preview output"><p>FLOATDESK Terminal Preview</p><p>Read-only Mac diagnostics. Type help to begin.</p></div>
+        <div class="terminal-quick-commands" aria-label="Supported commands">
+          <button id="cmdHelp" type="button">help</button>
+          <button id="cmdDate" type="button">date</button>
+          <button id="cmdUptime" type="button">uptime</button>
+          <button id="cmdSystem" type="button">system</button>
+        </div>
+        <form id="terminalForm" class="terminal-input-row" autocomplete="off">
+          <label for="terminalCommand">Mac diagnostics command</label>
+          <div class="terminal-entry">
+            <span class="terminal-prompt">&gt;</span>
+            <input id="terminalCommand" class="terminal-input" type="text" spellcheck="false" autocapitalize="none" autocorrect="off" maxlength="32" placeholder="help" disabled>
+            <button id="runTerminalCommand" type="submit" disabled>Run</button>
+          </div>
+        </form>
+      </section>
     </section>
     <section class="monitor panel" id="desktopMonitor">
       <div class="monitor-top"><h2>Live preview</h2><span id="status" role="status" aria-live="polite">Not connected</span></div>

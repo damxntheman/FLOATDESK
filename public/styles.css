@@ -108,3 +108,32 @@ body.control-focus #hostPreview{display:none!important}
   .iphone-app-glyph{width:46px;height:46px;border-radius:13px}
   .iphone-mode-device{width:48px;height:48px}
 }
+
+
+/* M4 phone-native Terminal Preview: intentionally separate from Mac shell. */
+#iphoneModeHome[hidden],#terminalPanel[hidden]{display:none!important}
+.mobile-terminal{margin:-6px -8px 0;min-width:0}
+.mobile-terminal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.mobile-terminal-head>button{padding:8px 11px;min-height:44px;white-space:nowrap}
+.mobile-terminal-label{display:flex;flex-direction:column;gap:3px;min-width:0;text-align:center}
+.mobile-terminal-label strong{font-size:1rem;letter-spacing:-.02em}
+.mobile-terminal-label span{font-size:.62rem;font-weight:800;letter-spacing:.04em;color:#72dfd1}
+.terminal-window-dots{font-size:.65rem;letter-spacing:2px;color:#c2a3a3;white-space:nowrap}
+.terminal-transcript{height:290px;overflow:auto;overflow-wrap:anywhere;
+  background:#060c13;border:1px solid #395067;border-radius:14px;
+  padding:15px 12px;color:#d7e9e4;line-height:1.5;
+  font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:pre-wrap;overscroll-behavior:contain}
+.terminal-transcript p{font:inherit;color:inherit;margin:0 0 5px}
+.terminal-transcript .command-line{color:#7de6cc}
+.terminal-transcript .command-error{color:#ffb5a8}
+.terminal-quick-commands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:12px 0}
+.terminal-quick-commands button{min-width:0;min-height:42px;padding:8px 4px;font-size:.75rem}
+.terminal-input-row label{margin-bottom:6px}
+.terminal-entry{display:flex;align-items:center;gap:9px;background:#091521;
+  border:1px solid #395067;border-radius:12px;padding:5px 5px 5px 12px}
+.terminal-entry:focus-within{border-color:#64dfd1}
+.terminal-prompt{color:#64dfd1;font-weight:800;font-family:monospace}
+.terminal-input{width:100%;background:transparent;border:0;outline:none;
+  border-radius:0;text-transform:none!important;min-width:0;padding:9px 0}
+.terminal-entry button{min-height:42px;padding:9px 13px}
