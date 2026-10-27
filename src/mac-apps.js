@@ -43,6 +43,16 @@ export function discoverMacApps({
       apps.push({ id: catalogId(path), name, path });
     }
   }
+  // Finder is a protected first-party app bundle outside /Applications.
+  // Add only this known path; do not enumerate all CoreServices helpers.
+  const finderPath = '/System/Library/CoreServices/Finder.app';
+  if (!seen.has(finderPath)) {
+    try {
+      if (lstatSync(finderPath).isDirectory()) {
+        apps.push({ id: catalogId(finderPath), name: 'Finder', path: finderPath });
+      }
+    } catch {}
+  }
   return apps.sort((a, b) => a.name.localeCompare(b.name, 'en') ||
     a.id.localeCompare(b.id)).slice(0, 120);
 }
