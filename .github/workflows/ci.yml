@@ -66,12 +66,12 @@ jobs:
       - name: Compile and exercise explicit Mac-owned local lifecycle
         run: |
           set -euo pipefail
-          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskLocalServiceSmoke.swift -o "$RUNNER_TEMP/floatdesk-local-service-smoke"
+          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskSourceSeal.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskLocalServiceSmoke.swift -o "$RUNNER_TEMP/floatdesk-local-service-smoke"
           FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-local-service-smoke"
       - name: Compile and validate local GUI configuration/locking policy
         run: |
           set -euo pipefail
-          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskHostSettings.swift native/macos/FloatdeskHostSetupSmoke.swift -o "$RUNNER_TEMP/floatdesk-host-setup-test"
+          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskSourceSeal.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskHostSettings.swift native/macos/FloatdeskHostSetupSmoke.swift -o "$RUNNER_TEMP/floatdesk-host-setup-test"
           FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-host-setup-test"
       - name: Verify lock exclusion across independent processes and owner crash
         run: |
