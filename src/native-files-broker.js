@@ -49,7 +49,8 @@ export function startNativeFilesBroker({
   spawnProcess=spawn,
   selectionMs=90000,
   listMs=5000,
-  randomId=()=>randomBytes(8).toString('hex')
+  randomId=()=>randomBytes(8).toString('hex'),
+  onEnd=()=>{}
 }={}) {
   if (platform !== 'darwin' || typeof binary !== 'string' ||
       !binary.startsWith('/') || !binary || !exists(binary)) {
@@ -80,6 +81,9 @@ export function startNativeFilesBroker({
     if (!ready) selectedReject(new Error(reason));
     try { child.stdin.end(); } catch {}
     try { if (!child.killed) child.kill(); } catch {}
+    if (ready) {
+      try { onEnd(reason); } catch {}
+    }
   }
   function send(frame) {
     if (!active || !child.stdin.writable) throw Error('Native Files broker is unavailable.');

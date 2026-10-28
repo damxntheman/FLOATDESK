@@ -410,9 +410,11 @@ wss.on('connection', (ws, req) => {
           throw new Error('Only a paired phone can request Files Mode access.');
         }
         const room = entry.record;
-        if (!room.host || room.host.readyState !== WebSocket.OPEN || process.platform !== 'darwin' ||
-            !(nativeFilesPath && existsSync(nativeFilesPath)) &&
-            !(nativePickerPath && existsSync(nativePickerPath))) {
+        const available = nativeFilesPath
+          ? existsSync(nativeFilesPath)
+          : Boolean(nativePickerPath && existsSync(nativePickerPath));
+        if (!room.host || room.host.readyState !== WebSocket.OPEN ||
+            process.platform !== 'darwin' || !available) {
           throw new Error('A connected Mac with a native folder picker is required for Files Mode.');
         }
         filesGrantFor(room).request();
@@ -432,7 +434,14 @@ wss.on('connection', (ws, req) => {
         let job;
         try {
           job = nativeFilesPath
-            ? startNativeFilesBroker({ binary:nativeFilesPath })
+            ? startNativeFilesBroker({
+                binary:nativeFilesPath,
+                onEnd: () => {
+                  if (filesBrokers.get(room) === job) {
+                    revokeFiles(room, 'Native Mac Files process ended; access revoked.');
+                  }
+                }
+              })
             : openMacFolderPicker({ binary:nativePickerPath });
         } catch {
           revokeFiles(room, 'Unable to open Mac folder picker. Files access is off.');
@@ -445,6 +454,7 @@ wss.on('connection', (ws, req) => {
           filesPickers.delete(room);
           if (registry.forClient(ws)?.record !== room || !room.viewer ||
               grant.phase !== 'selecting') {
+            job.cancel();
             revokeFiles(room, 'Folder permission expired or Mac disconnected.');
             return;
           }
@@ -459,6 +469,7 @@ wss.on('connection', (ws, req) => {
             filesStatus(room, 'active', 'Read-only folder names shared for five minutes.');
             send(room.viewer, { type:'files-root', label:selection.label });
           } catch {
+            job.cancel();
             revokeFiles(room, 'Mac folder selection expired; Files access is off.');
           }
         }).catch(() => {
