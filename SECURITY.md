@@ -61,3 +61,7 @@ The research-only AppKit menu bar shell has **no network listener, no autostart,
 ## M9 Mac-owned local research service
 
 The native menu Start action can launch only an explicitly locally configured, trusted Node executable running the checkout's `src/server.js`, with `HOST=127.0.0.1` and `PORT=8789` and a scrubbed environment. No phone/API action starts it. The current implementation does NOT guarantee cleanup if the menu app crashes, prohibit all cross-app duplicate processes, verify signed binary identities, or prove stop acknowledgement. Use only as a **local development tool**. The existing TLS/HTTPS LAN server on port 8788 and its **view-only iPhone PiP** remain independently managed and untouched.
+
+## M10 parent-bound local-only dashboard
+
+The 8789 Mac research server now runs via `src/managed-host.js`, which rejects `HOST` other than `127.0.0.1`, `PORT` other than `8789`, or inherited TLS settings. The macOS app retains the parent pipe's write FD; EOF causes Node to exit after menu app death. Mac Stop/Quit also closes the write side and signals only its owned child `Process`. A phone cannot invoke service start/restart. **Not a hardened supervisor:** hung Node may ignore EOF, unmanaged competing instances could occupy the port, local malicious software could interfere, and neither signing nor OS trust is established. The standalone HTTPS 8788 PiP server is unaffected, view-only, and still requires Mac capture permission.

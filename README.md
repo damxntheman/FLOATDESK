@@ -63,6 +63,10 @@ M8 adds a minimal macOS **FLOATDESK Mac Host.app** menu bar shell that opens the
 
 A newly built menu-bar **Start / Stop / Open local dashboard** flow manages only a locally spawned Node research server at `127.0.0.1:8789`. Requires explicit opt-in configuration (`FLOATDESK_REPO_ROOT`, `FLOATDESK_NODE_BIN`) and a Mac click. No autostart, inherited secrets, LAN listener or phone-triggered action. The existing manually managed HTTPS service on **8788**, Safari PiP, Desktop Mode and iPhone Mode remain separate. See [M9 notes](docs/M9-LOCAL-SERVICE-LIFECYCLE.md). Tests run in macOS CI; real Mac/iPhone testing remains deferred.
 
+## M10: Mac Host crash recovery (research)
+
+The Mac menu's **local-only research server** on `127.0.0.1:8789` now uses a parent-owned stdin pipe. The child is launched using `src/managed-host.js`; when the Mac app closes its pipe or dies, the wrapper detects EOF and exits, freeing its port. It also refuses altered LAN/TLS configurations. CI tests include a deliberately crashed Swift owner process and loopback-port cleanup. This does **not** touch the independent trusted-LAN HTTPS/PiP server on **8788** or enable automatic startup. See [M10 boundaries](docs/M10-PARENT-BOUND-RECOVERY.md).
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

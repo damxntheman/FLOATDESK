@@ -140,3 +140,7 @@ GitHub CI compiles the Swift menu bar shell, assembles a research `.app`, valida
 ## M9 deferred device validation
 
 macOS CI compiles the new Swift service manager and proves loopback Node start, duplicate denial, HTTP response and Stop via a separate smoke harness. **Not yet validated:** physical Mac menu clicks, process termination after app crash, native signing/TCC or iPhone PiP regression. Owner requested postponing physical tests. See [M9 checklist](M9-LOCAL-SERVICE-LIFECYCLE.md).
+
+## M10 owner process death and orphan prevention — no hardware validation
+
+GitHub CI now tests Node managed-host wrapper's refusal of LAN/TLS escalation, exiting on owner pipe EOF, and an actual Swift fixture abruptly exiting without a normal Stop, then checks loopback port 8789 closes. Real M1 Mac menu application shutdown, OS session termination, background PiP and crash modes remain physically unverified by owner choice. See [M10 checklist](M10-PARENT-BOUND-RECOVERY.md).

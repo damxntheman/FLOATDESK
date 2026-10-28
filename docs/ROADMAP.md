@@ -26,6 +26,15 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M10: parent-bound local research child
+
+- [x] Launch local-only 8789 Node through a dedicated `managed-host.js` with a Mac-owner-held stdin pipe, explicit EOF shutdown, and strict loopback/port/no-TLS checks.
+- [x] Stop and Quit close the pipe; the child is still explicitly terminated when owned. Parent app crashes close its inherited FD, allowing Node to exit instead of persisting unattended.
+- [x] Node unit checks for LAN/TLS refusal and owner-pipe EOF; macOS CI fixture simulates abrupt Swift owner death and checks 8789 closes.
+- [x] No automatic restart, login agent, arbitrary PID kill, new native capabilities, or changes to the independent trusted-LAN 8788 PiP path.
+- [ ] Physical owner MacBook M1 / iPhone 16 checks remain deferred; verify real macOS menu/permissions, app crash scenarios and browser PiP later.
+- [ ] Before production: code signing, shutdown acknowledgment, robust SIGKILL/unresponsive child recovery and cross-instance lock; document potential race if child hangs and can't process EOF.
+
 ## M9: opt-in Mac-owned loopback service
 
 - [x] Native Mac menu Start, Stop and Open for a distinct local Node research instance on `127.0.0.1:8789`, never the original LAN/PiP server on 8788.

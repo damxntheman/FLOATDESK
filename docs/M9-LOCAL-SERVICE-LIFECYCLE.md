@@ -24,3 +24,7 @@ This is an **unsigned/ad hoc signed research app**, not a production supervisor.
 - [ ] Evaluate signed Mac host and native permission model with real devices.
 
 **Model handoff rule:** We're coding in this ChatGPT conversation. The assistant will explicitly recommend **Astra** when deeper macOS code signing, XPC/TCC or full native architecture review is genuinely due; **Opus** when a full iPhone Mode UX overhaul is due. No handoff happens automatically.
+
+## M10 improvement
+
+The local 8789 child is now bound to its parent via a stdin pipe, so ordinary closing and abnormal owner process exit should cause the child to shut down instead of staying orphaned. This does **not** make it a robust production supervisor or replace the HTTPS PiP server. See [M10](M10-PARENT-BOUND-RECOVERY.md).
