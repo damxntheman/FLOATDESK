@@ -57,3 +57,7 @@ The opt-in native Files helper now keeps Mac owner folder selection and director
 ## M8 native Mac host shell / service inventory
 
 The research-only AppKit menu bar shell has **no network listener, no autostart, no remote-action capability and no embedded Node server**; its menu can open only the fixed `https://localhost:8788` dashboard. A browser on the Mac must still be paired and permissioned independently. A native service inventory is exposed only after local Mac host authentication and returns no executable paths, LAN IPs, signing credentials or tokens. File mode checks are merely informational: `configured` does NOT mean trusted code signing, verified parent directory permissions, Apple notarization or granted Accessibility/Files/TCC permissions. Do not use the CI ad hoc signature as a production trust identity. PiP is view-only and unaffected.
+
+## M9 Mac-owned local research service
+
+The native menu Start action can launch only an explicitly locally configured, trusted Node executable running the checkout's `src/server.js`, with `HOST=127.0.0.1` and `PORT=8789` and a scrubbed environment. No phone/API action starts it. The current implementation does NOT guarantee cleanup if the menu app crashes, prohibit all cross-app duplicate processes, verify signed binary identities, or prove stop acknowledgement. Use only as a **local development tool**. The existing TLS/HTTPS LAN server on port 8788 and its **view-only iPhone PiP** remain independently managed and untouched.

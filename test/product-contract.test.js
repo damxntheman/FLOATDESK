@@ -22,3 +22,21 @@ test('public setup docs avoid copying an example home network address', () => {
     assert.match(docs, /YOUR-MAC-LAN-IP|MAC_LAN_IP/);
   }
 });
+
+
+test('M9 Mac menu service stays loopback-only and preserves existing video paths', () => {
+  const shell = read('../native/macos/FloatdeskMacHost.swift');
+  const service = read('../native/macos/FloatdeskLocalService.swift');
+  const server = read('../src/server.js');
+  const client = read('../public/client.js');
+  assert.match(shell, /startLocalService/);
+  assert.match(shell, /stopLocalService/);
+  assert.match(shell, /localService\.stop\(\)/);
+  assert.match(service, /"HOST": "127\.0\.0\.1"/);
+  assert.match(service, /"PORT": Self\.port/);
+  assert.match(service, /static let port = "8789"/);
+  assert.match(service, /process\.environment = \[/);
+  assert.doesNotMatch(service, /"HOST": "0\.0\.0\.0"/);
+  assert.match(client, /requestPictureInPicture/);
+  assert.match(server, /capture-state/);
+});

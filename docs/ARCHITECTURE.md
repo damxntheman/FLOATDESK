@@ -1,5 +1,9 @@
 # Architecture and non-goals
 
+## M9: explicit loopback research child lifecycle
+
+`native/macos/FloatdeskLocalService.swift` owns an optional direct child `Process` launched from a trusted local checkout by a Mac-menu Start action. The child receives a tightly specified environment forcing `HOST=127.0.0.1`, `PORT=8789`, no inherited TLS or native-helper settings. Stop/Quit targets only that child, not an arbitrary PID or the separately managed HTTPS/PiP service on port 8788. M9 has no launch daemon, automatic restart, phone-facing API or service-identity guarantee after an app crash. See [M9 limitations](M9-LOCAL-SERVICE-LIFECYCLE.md).
+
 ## M8: native macOS host shell + local-only inventory
 
 `native/macos/FloatdeskMacHost.swift` adds an AppKit **menu bar shell** packaged via `scripts/build-mac-host.sh` using `native/macos/MacHost-Info.plist`. It has no listener, no remote API, no login item, and no entitlement-privileged service; it **only** opens the fixed `https://localhost:8788` dashboard when the Mac owner selects a menu item. It does not start, manage or authenticate the Node server yet. Ad hoc signing in macOS CI validates packaging only.
