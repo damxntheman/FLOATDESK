@@ -1,5 +1,9 @@
 # Architecture and non-goals
 
+## M7: fd-rooted Mac Files broker
+
+The optional native/macos/FloatdeskNativeFilesBroker.swift uses NSOpenPanel and retains the selected directory file descriptor in the SAME process. All nested directory traversal uses openat with O_NOFOLLOW; directory entry metadata uses fstatat without following symlinks. Node src/native-files-broker.js receives only owner-selected folder LABEL and bounded relative metadata, validates request IDs/schemas, and terminates the native process on revoke, exit, timeout or disconnect. Enable through FLOATDESK_NATIVE_FILES_BIN, otherwise use the existing M5 research path. Neither M7 nor M5 has verified real Mac TCC permissions; CI is not a substitute for physical acceptance. Full details: [M7 document](M7-NATIVE-FILES-BROKER.md).
+
 ## M6: native Mac companion handshake boundary
 
 `src/native-companion.js` talks to an **explicitly configured, locally spawned native macOS binary** over a bounded stdio JSON line. This stage accepts only `version:1`, `hello` + random 128-bit `requestId`, then expects a matching `hello-ack` and a strictly **all-false** capability map. It refuses mismatched protocol versions, unsolicited privileges, invalid JSON, oversized frames, timeouts and process crashes. The helper exits after one response. The server's `companion-probe` action is permitted only to the **authenticated local Mac host**, never the paired phone. No remote payload is forwarded to the helper. This is not yet a production XPC service, screen capturer, native PiP pipeline or privilege escalation mechanism.

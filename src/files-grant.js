@@ -22,7 +22,7 @@ export class FilesGrant extends AppAccessGrant {
       this.revoke();
       throw new Error('Mac folder selection has expired.');
     }
-    if (!selected || typeof selected.root !== 'string' ||
+    if (!selected || !(typeof selected.root === 'string' || selected.native === true) ||
         typeof selected.label !== 'string') {
       throw new Error('Mac must choose a folder first.');
     }

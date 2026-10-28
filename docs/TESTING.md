@@ -128,3 +128,7 @@ The owner is not testing on MacBook/iPhone right now. M5 native folder-picker co
 ## M6 native Mac companion research gate (deferred)
 
 The optional helper's protocol is unit-tested using mocked processes. **No physical Swift compilation, native macOS execution, native capture or native iPhone PiP verification has occurred for M6.** The owner requested deferred device checks. See [M6 scope/checklist](M6-NATIVE-COMPANION.md). The Mac readiness check reports protocol agreement only and must not be mistaken for an operational native Mac companion.
+
+## M7 native Files broker acceptance — deferred
+
+The native Swift broker is compiled and fixture-tested on GitHub's macOS runner. Node IPC security and PiP regression tests are automated. **Physical Mac owner GUI, iPhone navigation, TCC permissions and PiP remain unverified for M7.** See [M7 checklist](M7-NATIVE-FILES-BROKER.md). No physical tests are requested until owner is ready.
