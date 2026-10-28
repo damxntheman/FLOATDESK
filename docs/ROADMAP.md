@@ -26,6 +26,16 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M11: Mac GUI configuration and duplicate-manager lock
+
+- [x] Add Mac-native **Configure local dashboard** flow with two owner-selected panels (trusted project directory and Node executable), atomic save, local UserDefaults persistence and explicit Clear.
+- [x] Remove requirement to pass `FLOATDESK_REPO_ROOT` / `FLOATDESK_NODE_BIN` through Terminal when launching the research Mac menu shell; no remote configuration, login item or automatic service startup.
+- [x] Add dedicated same-user advisory lock around 8789 managed child using `O_NOFOLLOW`, regular-file/owner/mode checks and nonblocking file locking. Other menu instances cannot start a competing service while the lock is held.
+- [x] Retain lock until the child *really exits* after Stop, rather than unlocking immediately on SIGTERM; track stopping state in the menu.
+- [x] macOS CI fixture tests settings atomicity and lock behavior between separate processes, including release on lock-owner death; original M10 pipe-recovery and PiP tests remain.
+- [ ] Physical Mac M1 GUI picker/configuration/Stop and iPhone PiP checks remain deferred.
+- [ ] Production upgrades: hardened signed executable identity and parent-chain trust, app sandbox/security scoped settings, hostile local process/port contention, bounded forced shutdown and accurate cryptographic native service health attestation.
+
 ## M10: parent-bound local research child
 
 - [x] Launch local-only 8789 Node through a dedicated `managed-host.js` with a Mac-owner-held stdin pipe, explicit EOF shutdown, and strict loopback/port/no-TLS checks.

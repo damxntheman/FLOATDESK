@@ -15,8 +15,24 @@ final class FloatdeskLocalService {
     static let port = "8789"
     private var child: Process?
     private var ownerPipe: Pipe?
+    private let instanceLock: FloatdeskInstanceLock
+    private(set) var isStopping = false
+
+    init(instanceLock: FloatdeskInstanceLock? = nil) {
+        self.instanceLock = instanceLock ?? FloatdeskInstanceLock()
+    }
 
     var isRunning: Bool { child?.isRunning ?? false }
+
+    // Avoid unlocking before the child really exits. A second Mac Host may
+    // not bind the same loopback port while our old child shuts down.
+    func reapExited() {
+        guard let process = child, !process.isRunning else { return }
+        child = nil
+        ownerPipe = nil
+        isStopping = false
+        instanceLock.release()
+    }
 
     static func validSource(root: String?, nodePath: String?) -> Bool {
         guard let root, let nodePath,
@@ -34,14 +50,16 @@ final class FloatdeskLocalService {
     }
 
     func start(root: String?, nodePath: String?) throws {
-        guard !isRunning else { throw StartError.alreadyRunning }
-        // Discard a previously exited child and its stale ownership pipe.
-        if child != nil { stop() }
+        reapExited()
+        guard child == nil && !isStopping else { throw StartError.alreadyRunning }
         guard root != nil && nodePath != nil else { throw StartError.notConfigured }
         guard Self.validSource(root: root, nodePath: nodePath) else {
             throw StartError.unsafeSource
         }
         guard let root, let nodePath else { throw StartError.notConfigured }
+        try instanceLock.acquire()
+        var started = false
+        defer { if !started { instanceLock.release() } }
         let folder = URL(fileURLWithPath: root, isDirectory: true).resolvingSymlinksInPath()
         let node = URL(fileURLWithPath: nodePath).resolvingSymlinksInPath()
         let script = folder.appendingPathComponent("src/managed-host.js")
@@ -67,15 +85,19 @@ final class FloatdeskLocalService {
         // dies, EOF propagates to the Node child.
         ownerPipe = pipe
         child = process
+        started = true
     }
 
     func stop() {
+        reapExited()
         guard let process = child else { return }
-        child = nil
-        // Closing ownership writer causes the child to exit even if SIGTERM
-        // is not observed. SIGTERM is also sent for prompt normal Stop/Quit.
+        if isStopping { return }
+        isStopping = true
+        // Retain lock until the process ACTUALLY exits; the next menu
+        // refresh/start reaps it. No busy-wait on the AppKit UI thread.
         ownerPipe?.fileHandleForWriting.closeFile()
         ownerPipe = nil
         if process.isRunning { process.terminate() }
+        reapExited()
     }
 }

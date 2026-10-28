@@ -8,6 +8,8 @@ import AppKit
 final class FloatdeskMenuDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let localService = FloatdeskLocalService()
+    private let settings = FloatdeskHostSettings()
+    private var configurationStatus: NSMenuItem?
     private var localStart: NSMenuItem?
     private var localStop: NSMenuItem?
     private var localOpen: NSMenuItem?
@@ -29,6 +31,23 @@ final class FloatdeskMenuDelegate: NSObject, NSApplicationDelegate {
                               action: #selector(openDashboard), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
+        menu.addItem(NSMenuItem.separator())
+
+        let setupStatus = NSMenuItem(title:"Local dashboard · not configured",
+                                     action:nil,keyEquivalent:"")
+        setupStatus.isEnabled = false
+        configurationStatus = setupStatus
+        menu.addItem(setupStatus)
+
+        let configure = NSMenuItem(title:"Configure local dashboard…",
+                                   action:#selector(configureLocalDashboard),keyEquivalent:"")
+        configure.target = self
+        menu.addItem(configure)
+
+        let reset = NSMenuItem(title:"Clear local configuration",
+                               action:#selector(resetLocalConfiguration),keyEquivalent:"")
+        reset.target = self
+        menu.addItem(reset)
         menu.addItem(NSMenuItem.separator())
 
         let serviceLabel = NSMenuItem(title: "Local research service · off",
@@ -79,17 +98,33 @@ final class FloatdeskMenuDelegate: NSObject, NSApplicationDelegate {
     @objc private func startLocalService() {
         // Explicit Mac user interaction only; no login item, auto-start,
         // phone command, remote socket or automatic privileged permission.
-        let env = ProcessInfo.processInfo.environment
         do {
-            try localService.start(root: env["FLOATDESK_REPO_ROOT"],
-                                   nodePath: env["FLOATDESK_NODE_BIN"])
+            try localService.start(root: settings.root, nodePath: settings.node)
         } catch {
             let alert = NSAlert()
             alert.messageText = "Local research service was not started"
-            alert.informativeText = "Configure a trusted checkout and Node executable locally, or stop any existing service on port 8789. The existing LAN/PiP server is unaffected."
+            alert.informativeText = "Use Configure local dashboard to select a trusted FLOATDESK checkout and Node. If another Mac Host is already running, close its managed local service first. HTTPS/PiP on 8788 remains unaffected."
             alert.alertStyle = .warning
             alert.runModal()
         }
+    }
+
+    @objc private func configureLocalDashboard() {
+        do {
+            _ = try settings.chooseUsingMacDialogs()
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Configuration not saved"
+            alert.informativeText = "Choose a trusted FLOATDESK project folder and the installed Node executable. No service was started."
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    @objc private func resetLocalConfiguration() {
+        // Clear only non-secret local selected paths, without changing
+        // existing running service or altering any LAN/PiP settings.
+        settings.clear()
     }
 
     @objc private func stopLocalService() {
@@ -112,15 +147,19 @@ final class FloatdeskMenuDelegate: NSObject, NSApplicationDelegate {
 
 extension FloatdeskMenuDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
+        localService.reapExited()
         let running = localService.isRunning
-        let env = ProcessInfo.processInfo.environment
-        let configured = FloatdeskLocalService.validSource(
-            root: env["FLOATDESK_REPO_ROOT"], nodePath: env["FLOATDESK_NODE_BIN"])
-        localStatus?.title = running ? "Local research service · running on 127.0.0.1:8789"
-            : "Local research service · stopped"
-        localStart?.isEnabled = !running && configured
-        localStop?.isEnabled = running
-        localOpen?.isEnabled = running
+        let configured = settings.configured
+        configurationStatus?.title = configured
+            ? "Local dashboard · configured on this Mac"
+            : "Local dashboard · choose project and Node"
+        let stopping = localService.isStopping
+        localStatus?.title = stopping ? "Local research service · stopping…"
+            : (running ? "Local research service · running on 127.0.0.1:8789"
+                : "Local research service · stopped")
+        localStart?.isEnabled = !running && !stopping && configured
+        localStop?.isEnabled = running && !stopping
+        localOpen?.isEnabled = running && !stopping
     }
 }
 
