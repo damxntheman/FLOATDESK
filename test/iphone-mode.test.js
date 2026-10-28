@@ -34,7 +34,8 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
     'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem',
     'filesPanel','filesGrid','filesStatus','filesRootLabel','filesFolderPath','filesLimitNote',
     'chooseFiles','revokeFiles','requestFiles','releaseFiles','closeFiles','filesUp',
-    'openFinderDesktop', 'probeCompanion', 'companionStatus'
+    'openFinderDesktop', 'probeCompanion', 'companionStatus', 'inspectNativeHost',
+    'nativeHostStatus', 'nativeHostServices'
   ];
   ids.forEach(id=>els.set(id,el()));
   const stored = new Map();

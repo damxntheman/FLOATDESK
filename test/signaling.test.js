@@ -193,6 +193,22 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
     assert.match((await missingPicker).message,/native folder picker/);
   }
 
+  // M8: service inventory stays on the local Mac host and never grants
+  // capabilities or reveals the configured binary paths to a paired phone.
+  const strangerInventory = receive(stranger,'error');
+  send(stranger,{type:'native-host-status'});
+  assert.match((await strangerInventory).message,/local Mac owner/);
+  const viewerInventory = receive(viewer,'error');
+  send(viewer,{type:'native-host-status'});
+  assert.match((await viewerInventory).message,/local Mac owner/);
+  const hostInventory = receive(host,'native-host-status-result');
+  send(host,{type:'native-host-status'});
+  const inventory=(await hostInventory).inventory;
+  assert.equal(inventory.version,1);
+  assert.equal(inventory.pip.viewOnly,true);
+  assert.equal(inventory.services.every(item=>item.status==='disabled'),true);
+  assert.equal(JSON.stringify(inventory).includes('FLOATDESK_'),false);
+
   // M6: the Mac owner may probe an explicitly installed helper; the
   // viewer and unauthenticated clients may never spawn a Mac process.
   const strangerCompanionDenied = receive(stranger,'error');

@@ -17,7 +17,8 @@ const buttons = {
   requestFiles: $('requestFiles'), releaseFiles: $('releaseFiles'),
   closeFiles: $('closeFiles'), filesUp: $('filesUp'),
   openFinderDesktop: $('openFinderDesktop'),
-  probeCompanion: $('probeCompanion')
+  probeCompanion: $('probeCompanion'),
+  inspectNativeHost: $('inspectNativeHost')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -361,6 +362,7 @@ function remember(value) {
   syncHostCaptureControls();
   buttons.stop.disabled = !value || value.role !== 'host';
   buttons.probeCompanion.disabled = !value || value.role !== 'host';
+  buttons.inspectNativeHost.disabled = !value || value.role !== 'host';
   buttons.create.disabled = Boolean(value);
   buttons.join.disabled = Boolean(value);
   buttons.refresh.disabled = !value || value.role !== 'viewer';
@@ -589,6 +591,23 @@ async function handleMessage(data) {
     if (identity?.role === 'viewer' && appAccessPhase === 'active') {
       $('appLaunchStatus').textContent = data.name + ' was opened on your Mac.';
     }
+  } else if (data.type === 'native-host-status-result') {
+    if (identity?.role === 'host' && data.inventory?.version === 1 &&
+        Array.isArray(data.inventory.services)) {
+      const inventory = data.inventory;
+      const message = inventory.verification;
+      $('nativeHostStatus').textContent = typeof message === 'string'
+        ? message.slice(0, 180) : 'Native service status is informational only.';
+      const box = $('nativeHostServices');
+      box.replaceChildren();
+      for (const service of inventory.services.slice(0, 8)) {
+        if (typeof service?.title !== 'string' || typeof service?.status !== 'string') continue;
+        const item = document.createElement('p');
+        item.className = 'hint';
+        item.textContent = service.title.slice(0, 60) + ': ' + service.status.slice(0, 30);
+        box.append(item);
+      }
+    }
   } else if (data.type === 'companion-result') {
     if (identity?.role === 'host') {
       $('companionStatus').textContent = typeof data.message === 'string'
@@ -729,6 +748,12 @@ buttons.toggleHostPreview.addEventListener('click', () => {
 buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
   if (send({ type: 'request-video' })) status('Requesting new video from the Mac…');
+});
+buttons.inspectNativeHost.addEventListener('click', () => {
+  if (identity?.role !== 'host') return;
+  if (send({type:'native-host-status'})) {
+    $('nativeHostStatus').textContent = 'Inspecting local service configuration…';
+  }
 });
 buttons.probeCompanion.addEventListener('click', () => {
   if (identity?.role !== 'host') return;
