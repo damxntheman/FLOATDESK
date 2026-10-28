@@ -1,9 +1,9 @@
-// FLOATDESK M9 — explicitly operator-controlled LOOPBACK-ONLY research server.
+// FLOATDESK M10 — explicitly operator-owned loopback dashboard child.
 //
-// This is NOT a launch agent, daemon, installer, signed security boundary,
-// phone-facing production service or an automatic startup mechanism.
-// It only owns the direct child Process it creates on a Mac-local user click.
-// Existing Safari PiP / trusted-LAN HTTPS server remain completely separate.
+// This is NOT a signed service supervisor. A Mac user click starts a Node
+// child bound to 127.0.0.1:8789. A retained stdin pipe is the ownership
+// heartbeat: on owner process death/pipe EOF the child exits. The existing
+// independent HTTPS LAN port 8788 and iPhone PiP are NOT managed here.
 import Foundation
 
 @MainActor
@@ -14,6 +14,7 @@ final class FloatdeskLocalService {
 
     static let port = "8789"
     private var child: Process?
+    private var ownerPipe: Pipe?
 
     var isRunning: Bool { child?.isRunning ?? false }
 
@@ -24,7 +25,7 @@ final class FloatdeskLocalService {
               !root.contains("\n"), !nodePath.contains("\n") else { return false }
         let rootURL = URL(fileURLWithPath: root, isDirectory: true).resolvingSymlinksInPath()
         let nodeURL = URL(fileURLWithPath: nodePath).resolvingSymlinksInPath()
-        let script = rootURL.appendingPathComponent("src/server.js")
+        let script = rootURL.appendingPathComponent("src/managed-host.js")
         let package = rootURL.appendingPathComponent("package.json")
         return FileManager.default.fileExists(atPath: script.path) &&
             FileManager.default.isReadableFile(atPath: script.path) &&
@@ -34,6 +35,8 @@ final class FloatdeskLocalService {
 
     func start(root: String?, nodePath: String?) throws {
         guard !isRunning else { throw StartError.alreadyRunning }
+        // Discard a previously exited child and its stale ownership pipe.
+        if child != nil { stop() }
         guard root != nil && nodePath != nil else { throw StartError.notConfigured }
         guard Self.validSource(root: root, nodePath: nodePath) else {
             throw StartError.unsafeSource
@@ -41,14 +44,12 @@ final class FloatdeskLocalService {
         guard let root, let nodePath else { throw StartError.notConfigured }
         let folder = URL(fileURLWithPath: root, isDirectory: true).resolvingSymlinksInPath()
         let node = URL(fileURLWithPath: nodePath).resolvingSymlinksInPath()
-        let script = folder.appendingPathComponent("src/server.js")
+        let script = folder.appendingPathComponent("src/managed-host.js")
 
         let process = Process()
         process.executableURL = node
-        process.arguments = [script.path] // fixed source file; never a remote command
+        process.arguments = [script.path] // reviewed fixed source, not remote args
         process.currentDirectoryURL = folder
-        // Intentionally scrub inherited secrets and all LAN/TLS/native-helper
-        // variables. This source-only research service stays local to the Mac.
         process.environment = [
             "HOME": NSHomeDirectory(),
             "PATH": "/usr/bin:/bin",
@@ -56,18 +57,25 @@ final class FloatdeskLocalService {
             "PORT": Self.port,
             "NODE_ENV": "development"
         ]
-        process.standardInput = FileHandle.nullDevice
+        let pipe = Pipe()
+        process.standardInput = pipe
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
         try process.run()
+        // The write end is kept ONLY by the current menu app instance.
+        // No child inherits a copy of the write FD; when the menu process
+        // dies, EOF propagates to the Node child.
+        ownerPipe = pipe
         child = process
     }
 
     func stop() {
         guard let process = child else { return }
         child = nil
-        // Never signal a PID supplied by anyone else. Only terminate the
-        // precise Process object started through this menu bar instance.
+        // Closing ownership writer causes the child to exit even if SIGTERM
+        // is not observed. SIGTERM is also sent for prompt normal Stop/Quit.
+        ownerPipe?.fileHandleForWriting.closeFile()
+        ownerPipe = nil
         if process.isRunning { process.terminate() }
     }
 }
