@@ -61,6 +61,13 @@ jobs:
           FLOATDESK_ADHOC_SIGN: '1'
         run: |
           bash scripts/build-mac-host.sh "$RUNNER_TEMP"
+      - name: Install Node dependencies for local service smoke test
+        run: npm install --no-audit --no-fund
+      - name: Compile and exercise explicit Mac-owned local lifecycle
+        run: |
+          set -euo pipefail
+          xcrun swiftc -parse-as-library native/macos/FloatdeskLocalService.swift native/macos/FloatdeskLocalServiceSmoke.swift -o "$RUNNER_TEMP/floatdesk-local-service-smoke"
+          FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-local-service-smoke"
       - name: Inspect app bundle and assert no automatic services or permissions
         run: |
           python3 - <<'PY'
