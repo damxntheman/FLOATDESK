@@ -53,6 +53,12 @@ A new native macOS broker performs folder selection AND read-only directory enum
 
 **PiP remains a core FLOATDESK experience.** This native Files helper does not replace existing browser PiP, Desktop Mode or Terminal Preview.
 
+## M8: Mac menu bar host shell and local capability status
+
+M8 adds a minimal macOS **FLOATDESK Mac Host.app** menu bar shell that opens the existing **local** Mac dashboard; it does **not** start the Node service, request screen control, install a login item, capture video or replace the viewer. Build with `bash scripts/build-mac-host.sh`; CI tests Swift compilation, bundle structure and **ad hoc** signature validity (not Developer ID/notarization). A **Mac-only native service inventory** shows which optional helpers are configured, without returning local paths or granting permissions. See [M8 technical notes](docs/M8-MAC-HOST-SHELL.md).
+
+**iPhone PiP remains permanently supported** alongside Desktop Mode and iPhone Mode. The owner is continuing software development **without physical testing for now**.
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

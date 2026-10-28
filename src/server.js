@@ -17,6 +17,7 @@ import { FilesGrant } from './files-grant.js';
 import { openMacFolderPicker } from './folder-picker.js';
 import { listSafeMetadata } from './files-policy.js';
 import { probeNativeCompanion } from './native-companion.js';
+import { inspectNativeServices } from './native-host-inventory.js';
 import { startNativeFilesBroker } from './native-files-broker.js';
 
 const host = process.env.HOST || '127.0.0.1';
@@ -378,6 +379,14 @@ wss.on('connection', (ws, req) => {
         const lines = runTerminalPreview(data.command);
         grant.useAction();
         send(ws, { type:'terminal-output', command:data.command, lines });
+      } else if (data.type === 'native-host-status') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'host' || !isLocalPeer(ip)) {
+          throw new Error('Only the local Mac owner can inspect native service status.');
+        }
+        // Read-only inventory. No helper is started, no permissions granted.
+        // No absolute paths, local IPs, tokens or executable names are returned.
+        send(ws, {type:'native-host-status-result',inventory:inspectNativeServices()});
       } else if (data.type === 'companion-probe') {
         const entry = registry.forClient(ws);
         if (!entry || entry.role !== 'host' || !isLocalPeer(ip)) {

@@ -49,6 +49,9 @@
           <p class="hint">Optional, Mac-local research check. The native probe currently grants no screen, input, Files or Terminal capabilities and does not replace browser PiP.</p>
           <div class="actions"><button id="probeCompanion" disabled>Check companion readiness</button></div>
           <p id="companionStatus" class="hint" role="status" aria-live="polite">Not checked. PiP and Desktop Mode remain available without it.</p>
+          <div class="actions"><button id="inspectNativeHost" disabled>Inspect Mac native services</button></div>
+          <p id="nativeHostStatus" class="hint" role="status" aria-live="polite">Service inventory has not been checked.</p>
+          <div id="nativeHostServices" aria-label="Mac native service inventory"></div>
         </div>
         <p class="hint">Stop sharing turns off desktop video but keeps your phone paired. Share screen always asks for fresh browser permission. End session disconnects both devices. Capture requires HTTPS or localhost.</p>
       </article>

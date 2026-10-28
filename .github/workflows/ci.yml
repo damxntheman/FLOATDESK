@@ -49,3 +49,30 @@ jobs:
           assert 'secret contents' not in str(result) and 'token.txt' not in str(result)
           print('Native file broker FD containment smoke test passed')
           PY
+
+
+  mac-menu-shell-bundle:
+    runs-on: macos-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and ad-hoc sign the research-only menu bar app
+        env:
+          FLOATDESK_ADHOC_SIGN: '1'
+        run: |
+          bash scripts/build-mac-host.sh "$RUNNER_TEMP"
+      - name: Inspect app bundle and assert no automatic services or permissions
+        run: |
+          python3 - <<'PY'
+          import os,plistlib,pathlib
+          app=pathlib.Path(os.environ['RUNNER_TEMP'])/'FLOATDESK Mac Host.app'
+          p=plistlib.loads((app/'Contents/Info.plist').read_bytes())
+          assert p['CFBundleExecutable']=='FloatdeskMacHost'
+          assert p['LSUIElement'] is True
+          assert p['CFBundleIdentifier']=='com.floatdesk.research.mac-host'
+          assert not (app/'Contents/Library/LaunchServices').exists()
+          assert not (app/'Contents/PlugIns').exists()
+          assert (app/'Contents/MacOS/FloatdeskMacHost').is_file()
+          print('Research Mac shell bundle metadata check passed')
+          PY
+          codesign --verify --deep --strict "$RUNNER_TEMP/FLOATDESK Mac Host.app"

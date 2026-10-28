@@ -26,6 +26,16 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M8: macOS menu bar host integration — research shell
+
+- [x] Compile an AppKit menu bar shell with local-only **Open Mac dashboard** action; research Node browser server still started separately, not bundled or managed by this shell.
+- [x] Build a reproducible `.app` shell with LSUIElement, separate app metadata, and macOS CI **ad hoc** signature/build checks. No Developer ID signing, notarization or production installer yet.
+- [x] Mac-local-only native helper inventory: disabled/configured/missing/invalid, without disclosing paths, IPs or granting service permissions; paired iPhone cannot request it.
+- [x] Retain working browser PiP, read-only floating video, explicit Mac screen consent, Desktop Mode and existing iPhone app experiences untouched.
+- [ ] **Physical Mac M1 + iPhone 16 checks deferred**: menu bar launch, browser HTTPS dashboard, M7 helper, PiP / background behavior, TCC and menu item behavior.
+- [ ] Signed, sandbox/TCC-aware native Mac application packaging + permission UX and secure service process lifecycle; review network binding before integrated service startup.
+- [ ] Native iPhone app architecture and PiP media surface require **device verification** before any Safari/WebRTC replacement.
+
 ## M7: native owner-scoped read-only Files
 
 - [x] Swift Mac helper performs owner folder picker and file listing inside the same process; original absolute path is never transmitted to Node or the phone.
