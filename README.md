@@ -79,6 +79,10 @@ When you select a trusted project folder and Node executable through the Mac men
 
 The new [fail-closed Mac release gate](scripts/verify-mac-release.sh) refuses our **ad-hoc-signed** CI bundle and requires a reviewed Developer ID Application team, hardened runtime and a successful Gatekeeper check before any future production candidate is considered. Even then, human security/device review is required. **PiP, Desktop Mode and iPhone Mode are unaffected.** See [M12 scope](docs/M12-LOCAL-INTEGRITY.md). Physical-device checks remain deferred.
 
+## M13: owner-approved Astra architecture/security handoff
+
+The owner has approved a **separate Astra review** of the production Mac companion: signed helper identity, Screen Recording/Accessibility/TCC and file-scope permissions, service lifetime/XPC, pairing trust boundaries and preservation of browser PiP. Read [the complete M13 handoff](docs/M13-ASTRA-HANDOFF.md) before making any security-critical native changes. This commits the **brief**, not the actual Astra review; no model handoff, production signing or device testing has occurred simply by adding these documents. The current independent HTTPS/PiP port 8788 and Mac-only research port 8789 must remain unaffected.
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.
