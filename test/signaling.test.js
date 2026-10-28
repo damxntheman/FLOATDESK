@@ -193,6 +193,18 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
     assert.match((await missingPicker).message,/native folder picker/);
   }
 
+  // M6: the Mac owner may probe an explicitly installed helper; the
+  // viewer and unauthenticated clients may never spawn a Mac process.
+  const strangerCompanionDenied = receive(stranger,'error');
+  send(stranger,{type:'companion-probe'});
+  assert.match((await strangerCompanionDenied).message,/locally connected Mac owner/);
+  const viewerCompanionDenied = receive(viewer,'error');
+  send(viewer,{type:'companion-probe'});
+  assert.match((await viewerCompanionDenied).message,/locally connected Mac owner/);
+  const hostCompanion = receive(host,'companion-result');
+  send(host,{type:'companion-probe'});
+  assert.equal((await hostCompanion).state,'unavailable',
+    'no native helper is enabled by default');
   const badSignalMessage = receive(host, 'error');
   send(host, { type: 'signal', payload: { type: 'offer', id: 'invalid', sdp: { type: 'offer', sdp: '' } } });
   assert.match((await badSignalMessage).message, /Invalid signal/);
