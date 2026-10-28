@@ -137,3 +137,33 @@ body.control-focus #hostPreview{display:none!important}
 .terminal-input{width:100%;background:transparent;border:0;outline:none;
   border-radius:0;text-transform:none!important;min-width:0;padding:9px 0}
 .terminal-entry button{min-height:42px;padding:9px 13px}
+
+
+/* M5 Files Mode: macOS Files-like view, intentionally metadata-only.
+   No file content previews, destructive actions, or path input. */
+#filesPanel[hidden]{display:none!important}
+.mobile-files{margin:-6px -8px 0;min-width:0}
+.mobile-files-head{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.mobile-files-head button{min-height:44px;white-space:nowrap}
+.mobile-files-head>div{display:flex;flex-direction:column;gap:4px;align-items:center}
+.mobile-files-head strong{font-size:1.15rem}
+.mobile-files-head span:not(.files-glyph){font-size:.65rem;color:#8fdacb;font-weight:750}
+.files-glyph{font-size:1.7rem;color:#78d5cb}
+.files-location{display:flex;gap:10px;align-items:center;padding:12px;
+  border-radius:12px;background:#0c1726;margin:18px 0 12px}
+.files-location>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.files-location span{color:#a3b5c8;font-size:.75rem}
+.files-location strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.89rem}
+.files-location button{min-height:44px;white-space:nowrap}
+.files-grid{display:flex;flex-direction:column;gap:6px;min-height:90px}
+.files-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px;
+  min-height:56px;text-align:left;border-radius:11px;border:1px solid #2b4057;
+  background:#101d2e}
+.files-item .file-icon{display:flex;align-items:center;justify-content:center;
+  width:36px;height:36px;flex-shrink:0;border-radius:9px;background:#244258;
+  font-size:1.3rem;color:#85e6d7}
+.files-item .file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:.86rem;min-width:0;flex:1}
+.files-item .file-kind{font-size:.7rem;color:#8199ad}
+.files-item:disabled{opacity:.65}
+#openFinderDesktop{width:100%;margin-top:16px}

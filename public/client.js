@@ -12,7 +12,11 @@ const buttons = {
   requestTerminal: $('requestTerminal'), releaseTerminal: $('releaseTerminal'),
   closeTerminal: $('closeTerminal'), runTerminalCommand: $('runTerminalCommand'),
   cmdHelp: $('cmdHelp'), cmdDate: $('cmdDate'), cmdUptime: $('cmdUptime'),
-  cmdSystem: $('cmdSystem')
+  cmdSystem: $('cmdSystem'),
+  chooseFiles: $('chooseFiles'), revokeFiles: $('revokeFiles'),
+  requestFiles: $('requestFiles'), releaseFiles: $('releaseFiles'),
+  closeFiles: $('closeFiles'), filesUp: $('filesUp'),
+  openFinderDesktop: $('openFinderDesktop')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -33,6 +37,12 @@ let capturePending = false;
 let controlPhase = 'off';
 let appAccessPhase = 'off';
 let terminalPhase = 'off';
+let filesPhase = 'off';
+let filesFolder = '';
+let filesPending = null;
+let finderAppId = null;
+const filesPanel = $('filesPanel');
+const filesGrid = $('filesGrid');
 const appPanel = $('iphoneModePanel');
 const appHome = $('iphoneModeHome');
 const terminalPanel = $('terminalPanel');
@@ -40,6 +50,91 @@ const transcript = $('terminalTranscript');
 const terminalForm = $('terminalForm');
 const terminalInput = $('terminalCommand');
 const terminalCommands = new Set(['help', 'date', 'uptime', 'system']);
+function filesPlaceholder(message) {
+  const p = document.createElement('p');
+  p.className = 'hint';
+  p.textContent = message;
+  filesGrid.replaceChildren(p);
+}
+function openFilesExperience(id) {
+  if (identity?.role !== 'viewer' || appAccessPhase !== 'active') return;
+  finderAppId = id;
+  appHome.hidden = true;
+  terminalPanel.hidden = true;
+  filesPanel.hidden = false;
+  buttons.openFinderDesktop.disabled = false;
+}
+function closeFilesExperience() {
+  filesPanel.hidden = true;
+  appHome.hidden = false;
+}
+function showFilesState(phase, message = '') {
+  const previous = filesPhase;
+  filesPhase = phase;
+  const viewer = identity?.role === 'viewer';
+  const host = identity?.role === 'host';
+  buttons.chooseFiles.disabled = !host || phase !== 'requested';
+  buttons.revokeFiles.disabled = !host || phase === 'off';
+  buttons.requestFiles.disabled = !viewer || phase !== 'off';
+  buttons.releaseFiles.disabled = !viewer || phase === 'off';
+  $('filesStatus').textContent = message || (phase === 'active'
+    ? 'Read-only folder names approved for five minutes.'
+    : phase === 'selecting' ? 'Choose a folder in the Mac dialog.'
+    : phase === 'requested' ? 'Waiting for the Mac owner to choose a folder.'
+    : 'Request permission to browse a selected Mac folder.');
+  if (phase === 'off' && previous !== 'off') {
+    filesFolder = '';
+    filesPending = null;
+    $('filesRootLabel').textContent = 'Selected folder';
+    $('filesFolderPath').textContent = '/';
+    buttons.filesUp.disabled = true;
+    $('filesLimitNote').hidden = true;
+    filesPlaceholder('Folder access ended. Request a new Mac selection.');
+  }
+}
+function requestFilesFolder(folder) {
+  if (identity?.role !== 'viewer' || filesPhase !== 'active' || filesPending !== null) return;
+  filesPending = folder;
+  if (!send({type:'files-list', folder:folder || '.'})) filesPending = null;
+}
+function renderFilesDirectory(data) {
+  if (!Array.isArray(data?.entries) || typeof data.folder !== 'string' ||
+      data.folder !== (filesPending || '')) return;
+  filesPending = null;
+  filesFolder = data.folder;
+  $('filesFolderPath').textContent = filesFolder ? '/' + filesFolder : '/';
+  buttons.filesUp.disabled = !filesFolder;
+  $('filesLimitNote').hidden = !data.truncated;
+  filesGrid.replaceChildren();
+  const items = data.entries.slice(0, 100);
+  if (!items.length) return filesPlaceholder('This folder is empty.');
+  for (const entry of items) {
+    if (typeof entry?.name !== 'string' || !entry.name ||
+        entry.name.startsWith('.') || entry.name.length > 160 ||
+        entry.name.includes('/') || entry.name.includes('\\') ||
+        !['folder','file'].includes(entry.kind)) continue;
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'files-item';
+    tile.disabled = entry.kind !== 'folder';
+    const glyph = document.createElement('span');
+    glyph.className = 'file-icon';
+    glyph.textContent = entry.kind === 'folder' ? '▣' : '▤';
+    const title = document.createElement('span');
+    title.className = 'file-name';
+    title.textContent = entry.name;
+    const kind = document.createElement('span');
+    kind.className = 'file-kind';
+    kind.textContent = entry.kind === 'folder' ? '›' : 'File';
+    tile.append(glyph,title,kind);
+    if (!tile.disabled) tile.addEventListener('click', () => {
+      if (filesPhase !== 'active') return;
+      requestFilesFolder(filesFolder ? filesFolder + '/' + entry.name : entry.name);
+    });
+    filesGrid.append(tile);
+  }
+  if (!filesGrid.children.length) filesPlaceholder('No supported entries to display.');
+}
 function addTerminalLine(text, kind = '') {
   const node = document.createElement('p');
   node.textContent = String(text).slice(0, 240);
@@ -54,6 +149,7 @@ function openTerminalExperience() {
   if (identity?.role !== 'viewer' || appAccessPhase !== 'active') return;
   appHome.hidden = true;
   terminalPanel.hidden = false;
+  filesPanel.hidden = true;
   if (terminalPhase !== 'active') {
     $('terminalStatus').textContent = 'Read-only Terminal Preview requires separate Mac approval.';
   }
@@ -130,6 +226,10 @@ function renderAppCatalog(apps) {
         openTerminalExperience();
         return;
       }
+      if (app.experience === 'mobile-files') {
+        openFilesExperience(app.id);
+        return;
+      }
       if (send({ type:'app-launch', id:app.id })) {
         $('appLaunchStatus').textContent = 'Opening ' + app.name + ' on the Mac…';
       }
@@ -155,6 +255,7 @@ function showAppAccessState(phase, message = '') {
   );
   if (phase === 'off' && previous !== 'off') {
     closeTerminalExperience();
+    closeFilesExperience();
     showAppPlaceholder('Mac app access ended. Request permission again.');
     $('appLaunchStatus').textContent = '';
   }
@@ -265,6 +366,7 @@ function remember(value) {
   showControlState(controlPhase);
   showAppAccessState(appAccessPhase);
   showTerminalState(terminalPhase);
+  showFilesState(filesPhase);
 }
 function send(data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) { status('Signaling unavailable. Reconnecting…'); return false; }
@@ -304,7 +406,9 @@ function resetSession() {
   showControlState('off', 'Remote control off.');
   showAppAccessState('off', 'Session ended; app access revoked.');
   showTerminalState('off', 'Session ended; Terminal Preview revoked.');
+  showFilesState('off', 'Session ended; Files permission revoked.');
   closeTerminalExperience();
+  closeFilesExperience();
   // Ending a session must also invalidate any pending capture permission picker.
   captureRequestId++;
   capturePending = false;
@@ -337,6 +441,9 @@ function connect() {
     }
     if (identity?.role === 'viewer' && terminalPhase !== 'off') {
       showTerminalState('off', 'Connection lost; Terminal Preview disabled.');
+    }
+    if (identity?.role === 'viewer' && filesPhase !== 'off') {
+      showFilesState('off', 'Connection lost; Files permission disabled.');
     }
     status('Signaling disconnected. Retrying…');
     clearTimeout(reconnectTimer);
@@ -486,6 +593,18 @@ async function handleMessage(data) {
     if (identity?.role === 'viewer' && terminalPhase === 'active' && Array.isArray(data.lines)) {
       for (const line of data.lines.slice(0, 8)) addTerminalLine(line);
     }
+  } else if (data.type === 'files-state') {
+    showFilesState(data.state, data.message);
+  } else if (data.type === 'files-root') {
+    if (identity?.role === 'viewer' && filesPhase === 'active') {
+      $('filesRootLabel').textContent = typeof data.label === 'string'
+        ? data.label.slice(0, 80) : 'Selected folder';
+      filesFolder = '';
+      filesPending = null;
+      requestFilesFolder('');
+    }
+  } else if (data.type === 'files-list-result') {
+    if (identity?.role === 'viewer' && filesPhase === 'active') renderFilesDirectory(data);
   } else if (data.type === 'recovery-request-accepted') {
     status('Refresh accepted. Waiting for a new WebRTC video connection…');
   } else if (data.type === 'signal') {
@@ -494,6 +613,7 @@ async function handleMessage(data) {
     showControlState('off', 'Other device disconnected. Control revoked.');
     showAppAccessState('off', 'Mac disconnected. App access revoked.');
     showTerminalState('off', 'Mac disconnected. Terminal Preview revoked.');
+    showFilesState('off', 'Mac disconnected. Files access revoked.');
     if (identity && identity.role === 'host') viewerReady = false;
     closePeer();
     status('Other device disconnected. Session credentials retained.');
@@ -512,6 +632,10 @@ async function handleMessage(data) {
     status(data.message);
     if (identity?.role === 'viewer') {
       if (!terminalPanel.hidden) addTerminalLine(data.message, 'command-error');
+      else if (!filesPanel.hidden) {
+        $('filesStatus').textContent = data.message;
+        filesPending = null;
+      }
       else $('appLaunchStatus').textContent = data.message;
     }
     if (/authentication failed|Session unavailable/i.test(data.message)) resetSession();
@@ -598,6 +722,23 @@ buttons.toggleHostPreview.addEventListener('click', () => {
 buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
   if (send({ type: 'request-video' })) status('Requesting new video from the Mac…');
+});
+buttons.requestFiles.addEventListener('click', () => send({type:'files-request'}));
+buttons.releaseFiles.addEventListener('click', () => send({type:'files-revoke'}));
+buttons.chooseFiles.addEventListener('click', () => send({type:'files-choose-root'}));
+buttons.revokeFiles.addEventListener('click', () => send({type:'files-revoke'}));
+buttons.closeFiles.addEventListener('click', closeFilesExperience);
+buttons.filesUp.addEventListener('click', () => {
+  if (filesPhase !== 'active' || !filesFolder) return;
+  const parts = filesFolder.split('/');
+  parts.pop();
+  requestFilesFolder(parts.join('/'));
+});
+buttons.openFinderDesktop.addEventListener('click', () => {
+  if (identity?.role !== 'viewer' || appAccessPhase !== 'active' || !finderAppId) return;
+  if (send({type:'app-launch', id:finderAppId})) {
+    $('filesStatus').textContent = 'Opening Finder on your Mac. Choose Desktop Mode to view it.';
+  }
 });
 buttons.requestTerminal.addEventListener('click', () => send({ type:'terminal-request' }));
 buttons.releaseTerminal.addEventListener('click', () => send({ type:'terminal-revoke' }));

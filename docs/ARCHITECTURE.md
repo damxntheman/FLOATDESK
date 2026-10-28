@@ -1,5 +1,11 @@
 # Architecture and non-goals
 
+## M5: opt-in native Mac folder chooser and read-only Files
+
+`src/files-policy.js` provides restricted folder metadata enumeration. A separate Mac-local owner click invokes a **compiled** `NSOpenPanel` helper with no user-supplied command paths; the selected folder is retained only in server memory. The phone never sends an absolute path and never sees the full root path. `FilesGrant` is independent of the existing application, Terminal Preview and touch grants. The picker is **not configured by default**; browse requests are rejected until the owner opts into `FLOATDESK_FOLDER_PICKER_BIN`. The Mac server enforces a selected-root-only, relative-path, read-only listing protocol.
+
+**Security limitations:** the Mac GUI helper and Node file-reader are separate processes. Native picker sandbox permissions and TCC scope may not automatically transfer to Node. Path containment checks are not an fd-based race-proof traversal. This remains LAN-only alpha code; no file contents or writes are exposed. See [M5 scope](M5-FILES-MODE.md).
+
 ## M4: App Experience Engine (non-universal adapters)
 
 A pure server-side app resolver recognizes ONLY the canonical built-in macOS Terminal bundle at `/System/Applications/Utilities/Terminal.app`. Public app catalog entries include an `experience` hint (`mobile-terminal-preview` or `desktop-launch`). That hint controls UI routing, **never grants authorization**; the Mac server independently enforces all operation permissions.

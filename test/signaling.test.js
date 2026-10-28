@@ -174,6 +174,25 @@ test('WebSocket pairing, authorized relaying and session resumption', { timeout:
     assert.match((await unsupported).message,/Mac host/);
   }
 
+  // M5 Files is independently denied without owner-selected Mac root.
+  const filesUnpaired = receive(stranger,'error');
+  send(stranger,{type:'files-list',folder:'.'});
+  assert.match((await filesUnpaired).message,/paired phone/);
+  const filesNotApproved = receive(viewer,'error');
+  send(viewer,{type:'files-list',folder:'.'});
+  assert.match((await filesNotApproved).message,/not approved/);
+  const filesHostSpoof = receive(viewer,'error');
+  send(viewer,{type:'files-choose-root'});
+  assert.match((await filesHostSpoof).message,/local Mac owner/);
+  const filesHostBrowse = receive(host,'error');
+  send(host,{type:'files-list',folder:'.'});
+  assert.match((await filesHostBrowse).message,/paired phone/);
+  if (process.platform !== 'darwin') {
+    const missingPicker = receive(viewer,'error');
+    send(viewer,{type:'files-request'});
+    assert.match((await missingPicker).message,/native folder picker/);
+  }
+
   const badSignalMessage = receive(host, 'error');
   send(host, { type: 'signal', payload: { type: 'offer', id: 'invalid', sdp: { type: 'offer', sdp: '' } } });
   assert.match((await badSignalMessage).message, /Invalid signal/);

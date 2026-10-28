@@ -13,6 +13,9 @@ import { AppAccessGrant } from './app-access.js';
 import { discoverMacApps, publicCatalog, launchCatalogApp } from './mac-apps.js';
 import { TerminalPreviewGrant } from './terminal-grant.js';
 import { runTerminalPreview } from './terminal-preview.js';
+import { FilesGrant } from './files-grant.js';
+import { openMacFolderPicker } from './folder-picker.js';
+import { listSafeMetadata } from './files-policy.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || '8787');
@@ -38,6 +41,10 @@ const controlGrants = new WeakMap();
 const controlAgents = new WeakMap();
 const appGrants = new WeakMap();
 const terminalGrants = new WeakMap();
+const filesGrants = new WeakMap();
+const filesRoots = new WeakMap();
+const filesPickers = new WeakMap();
+const nativePickerPath = process.env.FLOATDESK_FOLDER_PICKER_BIN || '';
 const nativeAgentPath = process.env.FLOATDESK_AGENT_BIN || '';
 function appGrantFor(room) {
   if (!appGrants.has(room)) appGrants.set(room, new AppAccessGrant());
@@ -68,6 +75,27 @@ function revokeTerminal(room, reason = 'Terminal Preview disabled.') {
   const previous = grant.phase;
   grant.revoke();
   if (previous !== 'off') terminalStatus(room, 'off', reason);
+}
+function filesGrantFor(room) {
+  if (!filesGrants.has(room)) filesGrants.set(room, new FilesGrant());
+  return filesGrants.get(room);
+}
+function filesStatus(room, state, message = '') {
+  send(room.host, { type:'files-state', state, message });
+  send(room.viewer, { type:'files-state', state, message });
+}
+function revokeFiles(room, reason = 'Files access is off.') {
+  if (!room) return;
+  const job = filesPickers.get(room);
+  if (job) {
+    filesPickers.delete(room);
+    job.cancel(); // abandon picker; stale responses cannot reactivate access
+  }
+  filesRoots.delete(room);
+  const grant = filesGrantFor(room);
+  const before = grant.phase;
+  grant.revoke();
+  if (before !== 'off') filesStatus(room, 'off', reason);
 }
 function grantFor(room) {
   if (!controlGrants.has(room)) controlGrants.set(room, new ControlGrant());
@@ -212,6 +240,7 @@ wss.on('connection', (ws, req) => {
           revokeControl(record, 'Touch control revoked when a device resumed its session.');
           revokeAppAccess(record, 'Mac app access revoked when a device resumed its session.');
           revokeTerminal(record, 'Terminal Preview disabled when device resumed.');
+          revokeFiles(record, 'Files access revoked when device resumed.');
           previous.close(4001, 'Session moved');
         }
         send(ws, { type: 'resumed', role: data.role, code: record.code, expiresAt: record.expiresAt });
@@ -338,6 +367,85 @@ wss.on('connection', (ws, req) => {
         const lines = runTerminalPreview(data.command);
         grant.useAction();
         send(ws, { type:'terminal-output', command:data.command, lines });
+      } else if (data.type === 'files-request') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') {
+          throw new Error('Only a paired phone can request Files Mode access.');
+        }
+        const room = entry.record;
+        if (!room.host || room.host.readyState !== WebSocket.OPEN || process.platform !== 'darwin' ||
+            !nativePickerPath || !existsSync(nativePickerPath)) {
+          throw new Error('A connected Mac with a native folder picker is required for Files Mode.');
+        }
+        filesGrantFor(room).request();
+        filesStatus(room, 'requested', 'Phone requests read-only folder names. Choose a folder on this Mac within 30 seconds.');
+      } else if (data.type === 'files-choose-root') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'host' || !isLocalPeer(ip)) {
+          throw new Error('Only the local Mac owner can choose a Files Mode folder.');
+        }
+        const room = entry.record;
+        if (!room.viewer || room.viewer.readyState !== WebSocket.OPEN) {
+          throw new Error('A connected paired phone is required.');
+        }
+        if (filesPickers.has(room)) throw new Error('Folder picker is already open.');
+        const grant = filesGrantFor(room);
+        grant.beginSelection();
+        let job;
+        try {
+          job = openMacFolderPicker({ binary:nativePickerPath });
+        } catch {
+          revokeFiles(room, 'Unable to open Mac folder picker. Files access is off.');
+          throw new Error('Mac folder picker unavailable.');
+        }
+        filesPickers.set(room, job);
+        filesStatus(room, 'selecting', 'Choose a specific folder in the native Mac dialog. Cancel to deny access.');
+        job.promise.then(selection => {
+          if (filesPickers.get(room) !== job) return;
+          filesPickers.delete(room);
+          if (registry.forClient(ws)?.record !== room || !room.viewer ||
+              grant.phase !== 'selecting') {
+            revokeFiles(room, 'Folder permission expired or Mac disconnected.');
+            return;
+          }
+          try {
+            grant.approveWithSelection(selection);
+            filesRoots.set(room, selection.root); // never returned to phone
+            filesStatus(room, 'active', 'Read-only folder names shared for five minutes.');
+            send(room.viewer, { type:'files-root', label:selection.label });
+          } catch {
+            revokeFiles(room, 'Mac folder selection expired; Files access is off.');
+          }
+        }).catch(() => {
+          if (filesPickers.get(room) !== job) return;
+          filesPickers.delete(room);
+          revokeFiles(room, 'Mac folder selection cancelled or failed.');
+        });
+      } else if (data.type === 'files-revoke') {
+        const entry = registry.forClient(ws);
+        if (!entry || !['host','viewer'].includes(entry.role) ||
+            (entry.role === 'host' && !isLocalPeer(ip))) {
+          throw new Error('Only a paired phone or local Mac owner can revoke Files Mode.');
+        }
+        revokeFiles(entry.record, 'Read-only Files access revoked.');
+      } else if (data.type === 'files-list') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'viewer') {
+          throw new Error('Only the paired phone can browse selected Mac folder names.');
+        }
+        const room = entry.record;
+        const grant = filesGrantFor(room);
+        grant.check();
+        const selectedRoot = filesRoots.get(room);
+        if (!selectedRoot) throw new Error('Mac has not selected a folder.');
+        try {
+          grant.useAction();
+          const result = listSafeMetadata(selectedRoot, data.folder === undefined ? '.' : data.folder);
+          send(ws, { type:'files-list-result', ...result });
+        } catch {
+          // Never send internal Mac paths, OS error strings or file contents.
+          throw new Error('Folder unavailable, invalid, or requested too quickly.');
+        }
       } else if (data.type === 'control-request') {
         const entry = registry.forClient(ws);
         if (!entry || entry.role !== 'viewer') throw new Error('Only the paired iPhone viewer can request control.');
@@ -405,6 +513,7 @@ wss.on('connection', (ws, req) => {
           revokeControl(entry.record, 'Session ended.');
           revokeAppAccess(entry.record, 'Session ended.');
           revokeTerminal(entry.record, 'Session ended.');
+          revokeFiles(entry.record, 'Session ended.');
         }
         const peer = registry.peer(ws);
         registry.stop(ws);
@@ -421,6 +530,7 @@ wss.on('connection', (ws, req) => {
       revokeControl(entry.record, 'A device disconnected; touch control revoked.');
       revokeAppAccess(entry.record, 'A device disconnected; Mac app access revoked.');
       revokeTerminal(entry.record, 'A device disconnected; Terminal Preview revoked.');
+      revokeFiles(entry.record, 'A device disconnected; Files access revoked.');
       if (entry.role === 'host') entry.record.captureSurface = null;
       const other = entry.role === 'host' ? entry.record.viewer : entry.record.host;
       send(other, { type: 'peer-disconnected' });
@@ -436,10 +546,12 @@ const housekeeping = setInterval(() => {
     if (grant.expired()) revokeControl(room, 'Touch control approval expired.');
     if (appGrantFor(room).expired()) revokeAppAccess(room, 'Mac app access expired. Request permission again.');
     if (terminalGrantFor(room).expired()) revokeTerminal(room, 'Terminal Preview expired. Request fresh approval.');
+    if (filesGrantFor(room).expired()) revokeFiles(room, 'Files Mode permission expired. Request again.');
     if (now >= room.expiresAt) {
       revokeControl(room, 'Session expired.');
       revokeAppAccess(room, 'Session expired.');
       revokeTerminal(room, 'Session expired.');
+      revokeFiles(room, 'Session expired.');
       send(room.host, { type: 'session-ended' });
       send(room.viewer, { type: 'session-ended' });
     }

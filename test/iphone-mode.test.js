@@ -31,7 +31,10 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
     'requestApps','releaseApps','approveApps','revokeApps','openDesktop',
     'iphoneModeHome', 'terminalPanel', 'terminalTranscript', 'terminalForm', 'terminalCommand',
     'terminalStatus', 'requestTerminal', 'releaseTerminal', 'approveTerminal', 'revokeTerminal',
-    'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem'
+    'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem',
+    'filesPanel','filesGrid','filesStatus','filesRootLabel','filesFolderPath','filesLimitNote',
+    'chooseFiles','revokeFiles','requestFiles','releaseFiles','closeFiles','filesUp',
+    'openFinderDesktop'
   ];
   ids.forEach(id=>els.set(id,el()));
   const stored = new Map();
@@ -82,7 +85,7 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
   assert.equal(sent.at(-1).type,'app-list','phone requests catalog only after Mac consent');
   const id='a'.repeat(24);
   await receive({type:'app-list-result',apps:[
-    {id,name:'Finder'},
+    {id,name:'Finder',experience:'mobile-files'},
     {id:'b'.repeat(24),name:'<img src=x onerror=alert(1)>'},
     {id:'c'.repeat(24),name:'Terminal',experience:'mobile-terminal-preview'},
     {id:'../../bin/sh',name:'Not allowed'}
@@ -90,11 +93,45 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
   assert.equal(find('appsGrid').children.length,3,'rejects invalid app IDs');
   assert.equal(find('appsGrid').children[1].children[1].textContent,'<img src=x onerror=alert(1)>',
     'app names inserted safely as plain text, never HTML');
+  const prior=sent.length;
   find('appsGrid').children[0].click();
-  assert.deepEqual(sent.at(-1),{type:'app-launch',id});
-  assert.match(find('appLaunchStatus').textContent,/Opening Finder/);
+  assert.equal(find('filesPanel').hidden,false,'Finder opens phone-native Files view');
+  assert.equal(find('iphoneModeHome').hidden,true);
+  assert.equal(sent.length,prior,'no automatic Mac app launch or folder access');
+  find('requestFiles').click();
+  assert.deepEqual(sent.at(-1),{type:'files-request'});
+  await receive({type:'files-state',state:'requested'});
+  assert.equal(find('chooseFiles').disabled,true,'remote viewer cannot open Mac picker');
+  await receive({type:'files-state',state:'selecting'});
+  await receive({type:'files-state',state:'active'});
+  await receive({type:'files-root',label:'Projects'});
+  assert.deepEqual(sent.at(-1),{type:'files-list',folder:'.'});
+  assert.equal(find('filesRootLabel').textContent,'Projects');
+  await receive({type:'files-list-result',folder:'',entries:[
+    {name:'Music',kind:'folder'},
+    {name:'private.txt',kind:'file'},
+    {name:'<img onerror=alert(1)>',kind:'file'}
+  ],truncated:false});
+  assert.equal(find('filesGrid').children.length,3);
+  assert.equal(find('filesGrid').children[1].disabled,true,'file content is not accessible');
+  assert.equal(find('filesGrid').children[2].children[1].textContent,'<img onerror=alert(1)>');
+  find('filesGrid').children[0].click();
+  assert.deepEqual(sent.at(-1),{type:'files-list',folder:'Music'});
+  await receive({type:'files-list-result',folder:'Music',entries:[{name:'mix.flp',kind:'file'}],truncated:false});
+  assert.equal(find('filesFolderPath').textContent,'/Music');
+  find('filesUp').click();
+  assert.deepEqual(sent.at(-1),{type:'files-list',folder:'.'});
+  await receive({type:'files-list-result',folder:'',entries:[],truncated:false});
+  find('openFinderDesktop').click();
+  assert.deepEqual(sent.at(-1),{type:'app-launch',id},'Finder desktop fallback is explicit');
   await receive({type:'app-launch-result',id,name:'Finder'});
   assert.match(find('appLaunchStatus').textContent,/opened on your Mac/);
+  await receive({type:'files-state',state:'off',message:'Revoked'});
+  assert.equal(find('filesGrid').children.length,1,'revoke clears folder metadata');
+  assert.equal(find('filesUp').disabled,true);
+  find('closeFiles').click();
+  assert.equal(find('filesPanel').hidden,true);
+  assert.equal(find('iphoneModeHome').hidden,false);
   // The canonical Terminal tile opens a phone-native Preview instead of
   // launching Terminal.app in the desktop. Diagnostics remain separately gated.
   const beforeTerminal=sent.length;

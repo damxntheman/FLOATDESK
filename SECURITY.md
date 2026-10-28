@@ -33,3 +33,9 @@ M3 is **not a general remote command executor**. The phone may request Mac-owner
 A Terminal.app tile uses a **distinct Mac-local approval**, for three minutes, to request allowlisted read-only diagnostics only: help, date, uptime, system. It does **not** spawn `sh`, `bash`, `zsh`, `osascript`, or any PTY, and cannot run arbitrary commands. The preview grants no file access or remote input rights and revokes on disconnect, stop, expiry or explicit revoke. Phone output uses text-only DOM insertion with bounded output.
 
 The Files Mode directory helper is **not reachable from signaling**. It contains only a safe, read-only metadata scanner for a future *Mac-owner-selected folder*. It rejects absolute phone paths, traversal and symlinks, and hides dotfiles. Do not expose any Files API, permit a remote path selector, or add mutations until a local Mac picker, independent approval and physical tests are completed.
+
+## M5 read-only folder metadata access
+
+M5 is explicitly disabled without an opt-in **native Mac folder picker binary**. The paired phone requests a folder scope but cannot choose or supply the path; the Mac owner must select a specific folder through a local `NSOpenPanel` and may revoke instantly. Only names and folder/file types (not contents or full paths) are transmitted, and the scope expires after five minutes. `src/files-policy.js` rejects parent traversal, hidden segments and symbolic link paths; listings are bounded. 
+
+The selection helper is separate from Node; it does **not** transfer App Sandbox bookmarks or guarantee Node's access to TCC-protected folders. Current JS path containment is not hardened against active filesystem race/symlink swaps. Do not browse sensitive folders, use an untrusted phone, or expose this prototype outside a trusted LAN. See [M5 limitations](docs/M5-FILES-MODE.md).

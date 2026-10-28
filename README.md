@@ -33,6 +33,10 @@ A paired iPhone can now request a **separate, five-minute Mac-approved capabilit
 
 In the next research increment, Apple's built-in Terminal app tile opens a **phone-native, mouse-free preview** instead of immediately launching a desktop window. The preview shows genuine, read-only Mac diagnostics with a separate **three-minute Mac approval**: `help`, `date`, `uptime` and `system`. This is **not a real shell**: no `ls`, `cd`, `git`, scripts, files or arbitrary commands execute. Other applications still use the desktop launcher fallback. Read-only Files Mode path-containment code is implemented **only as an internal module**, with no network API or filesystem permission until an owner-operated native folder picker is designed. See [M4 scope](docs/M4-APP-EXPERIENCES.md). Physical testing remains **deferred at owner request**.
 
+## M5: Files Mode (experimental, hardware tests deferred)
+
+Tapping a supported **Finder** tile now opens a phone-friendly, **read-only Files** screen. The paired phone can ask the **Mac owner to select a specific folder using a native `NSOpenPanel` helper** (a separately compiled, opt-in Swift binary). Only names of folders and files are returned; no file contents, transfers, modifications or arbitrary phone paths. Access expires after five minutes, independently of app/Terminal/mouse permissions. **Native picker, sandbox and TCC access are not yet validated on a physical Mac.** See [M5 scope and device gates](docs/M5-FILES-MODE.md).
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

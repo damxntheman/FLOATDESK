@@ -119,3 +119,7 @@ App list and launch have been implemented behind an independent five-minute Mac-
 ## M4 deferred physical acceptance
 
 The iPhone-native Terminal Preview and internal Files Mode safety policy have automated tests but **no physical acceptance**. The owner elected to hold device tests temporarily. When ready, follow [M4 test gates](M4-APP-EXPERIENCES.md), as well as still-open M3 Finder-launch gate and M2 regressions.
+
+## M5 Files Mode device acceptance postponed
+
+The owner is not testing on MacBook/iPhone right now. M5 native folder-picker compilation, macOS privacy access, safe browsing and revocation are therefore **unverified on hardware**. See [M5 checklist](M5-FILES-MODE.md); do not mark accepted based on CI alone.

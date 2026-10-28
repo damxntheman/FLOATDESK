@@ -20,6 +20,15 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M5: native-owner-selected, read-only Files Mode
+
+- [x] Finder → phone-native **Files** view with actual folder-name navigation, explicit Finder desktop fallback.
+- [x] Independent Mac-selected folder permission; opt-in `NSOpenPanel` picker helper with no command-line path input; 30-second request, 90-second picker, five-minute grant.
+- [x] Metadata-only folder listing; traversal/symlink/hidden-name filtering, bounded output, no file contents or writes; Mac and phone revoke on demand and lifecycle cleanup.
+- [ ] **Mac M1/iPhone 16 physical acceptance deferred by owner**; especially native picker GUI launch and sandbox/TCC access to selected folders.
+- [ ] Improve native macOS sandbox-scoped file handles / fd-safe traversal before product release or sensitive-folder use.
+- [ ] Only after real-device verification, consider file content previews/transfers under separate scope and consent.
+
 ## M4: App Experience Engine and Terminal Preview
 
 - [x] Declarative app experience descriptor: known canonical macOS Terminal bundle → touch-native Terminal Preview; unknown apps → Desktop Mode / existing launch fallback.

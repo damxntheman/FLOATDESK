@@ -26,7 +26,10 @@ test('Stop sharing clears capture and keeps host pairing; End session revokes it
     'approveApps', 'revokeApps', 'openDesktop',
     'iphoneModeHome', 'terminalPanel', 'terminalTranscript', 'terminalForm', 'terminalCommand',
     'terminalStatus', 'requestTerminal', 'releaseTerminal', 'approveTerminal', 'revokeTerminal',
-    'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem']) {
+    'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem',
+    'filesPanel','filesGrid','filesStatus','filesRootLabel','filesFolderPath','filesLimitNote',
+    'chooseFiles','revokeFiles','requestFiles','releaseFiles','closeFiles','filesUp',
+    'openFinderDesktop']) {
     elements.set(id, makeElement());
   }
   const saved = new Map();
