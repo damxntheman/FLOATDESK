@@ -7,7 +7,7 @@ if [[ "$#" -gt 0 ]]; then DEST="$1"; else DEST="$REPO_ROOT/build"; fi
 APP="$DEST/FLOATDESK Mac Host.app"
 mkdir -p "$APP/Contents/MacOS"
 cp "$REPO_ROOT/native/macos/MacHost-Info.plist" "$APP/Contents/Info.plist"
-xcrun swiftc -parse-as-library "$REPO_ROOT/native/macos/FloatdeskMacHost.swift" "$REPO_ROOT/native/macos/FloatdeskLocalService.swift" \
+xcrun swiftc -parse-as-library "$REPO_ROOT/native/macos/FloatdeskMacHost.swift" "$REPO_ROOT/native/macos/FloatdeskLocalService.swift" "$REPO_ROOT/native/macos/FloatdeskInstanceLock.swift" "$REPO_ROOT/native/macos/FloatdeskHostSettings.swift" \
   -o "$APP/Contents/MacOS/FloatdeskMacHost"
 plutil -lint "$APP/Contents/Info.plist"
 
