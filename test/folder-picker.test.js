@@ -11,7 +11,10 @@ test('Mac-picked root requires actual directory and refuses broad system roots',
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   mkdirSync(join(root,'Projects'));
   assert.equal(verifyPickedRoot(join(root,'Projects')).root,join(root,'Projects'));
-  for(const p of ['/','/System','/private','/Library','/Users','relative','/a\nb','']) {
+  for(const p of ['/','/System','/private','/Library','/Users']) {
+    assert.throws(()=>verifyPickedRoot(p,{realpath:()=>p,lstat:()=>({isDirectory:()=>true})}),/folder|root|invalid/i);
+  }
+  for(const p of ['relative','/a\nb','']) {
     assert.throws(()=>verifyPickedRoot(p),/folder|root|invalid/i);
   }
 });
@@ -19,6 +22,9 @@ test('Files grant cannot be activated before Mac selection and expires independe
   let now=1000;
   const grant=new FilesGrant(()=>now);
   grant.request();
+  assert.throws(()=>grant.approveWithSelection(null),/selection has expired/);
+  grant.request();
+  grant.beginSelection();
   assert.throws(()=>grant.approveWithSelection(null),/choose a folder/);
   grant.approveWithSelection({root:'/example/Projects',label:'Projects'});
   grant.check();
@@ -48,7 +54,10 @@ test('picker result is validated locally; cancellation never grants access', asy
     const handle=openMacFolderPicker({
       platform:'darwin',binary:'/fake/helper',exists:()=>true,
       spawnProcess:()=>{child=new FakeChild();return child},
-      verify:p=>({root:p,label:'Selected'})
+      verify:p=>{
+        if (!p.startsWith('/')) throw new Error('Invalid selection');
+        return {root:p,label:'Selected'};
+      }
     });
     child.out(body);
     child.callbacks.exit(0);
@@ -58,4 +67,20 @@ test('picker result is validated locally; cancellation never grants access', asy
     {root:'/Users/me/Projects',label:'Selected'});
   await assert.rejects(pick('{"type":"cancelled"}\n'),/cancelled/);
   await assert.rejects(pick('{"type":"chosen","path":"../../../etc"}\n'),/Invalid|selection/);
+});
+
+test('Mac has 30 seconds to begin selecting; picker gets its own 90-second window', () => {
+  let now = 0;
+  const grant = new FilesGrant(()=>now);
+  grant.request();
+  now = 30001;
+  assert.throws(()=>grant.beginSelection(),/expired/);
+  grant.request();
+  grant.beginSelection();
+  assert.equal(grant.phase,'selecting');
+  now += 89999;
+  assert.equal(grant.expired(),false);
+  now += 2;
+  assert.equal(grant.expired(),true);
+  assert.throws(()=>grant.approveWithSelection({root:'/a',label:'a'}),/expired/);
 });
