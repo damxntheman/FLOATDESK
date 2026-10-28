@@ -112,3 +112,22 @@ test('select and list timeouts kill subprocess and deny access',async()=>{
   await assert.rejects(two.broker.list('.'),/timed out/);
   assert.equal(two.child.killed,true);
 });
+
+test('child death after approval notifies owner and closes native scope',async()=>{
+  const notifications=[];
+  const {child,broker}=make({onEnd:reason=>notifications.push(reason)});
+  child.reply(selected());
+  await broker.promise;
+  child.emit('exit',1);
+  assert.deepEqual(notifications,['Native Files broker exited.']);
+  assert.equal(child.killed,true);
+});
+test('cancel after approval is idempotent and notifies only once',async()=>{
+  const reasons=[];
+  const {child,broker}=make({onEnd:reason=>reasons.push(reason)});
+  child.reply(selected());
+  await broker.promise;
+  broker.cancel();
+  broker.cancel();
+  assert.deepEqual(reasons,['Native Files access revoked.']);
+});

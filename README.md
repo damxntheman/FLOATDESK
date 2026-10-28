@@ -47,6 +47,12 @@ Tapping a supported **Finder** tile now opens a phone-friendly, **read-only File
 
 A separate, **opt-in Mac-native Swift probe** and a fail-closed Node process bridge now agree on a versioned, local-only handshake. The Mac owner can click **Check companion readiness** in Chrome to verify the bridge is reachable. It currently reports **zero privileged capabilities**: no native capture, input, file access, terminal or native iOS PiP. All previously implemented browser Desktop Mode, **view-only PiP**, app launcher, Terminal Preview and Files Mode paths remain unchanged. Swift compilation and device permission behavior are **not physically verified**. See [M6 architecture and safe opt-in](docs/M6-NATIVE-COMPANION.md).
 
+## M7: native Files broker (opt-in research alpha)
+
+A new native macOS broker performs folder selection AND read-only directory enumeration in one process. The Mac owner's selected directory remains private inside the helper, which uses file-descriptor-relative traversal to prevent symlink escapes. The phone receives authorized file/folder names only, never content or full Mac paths. Set FLOATDESK_NATIVE_FILES_BIN explicitly to opt in; M5 otherwise remains. GitHub macOS CI compiles the Swift service and tests its directory-safety behavior, but GUI selection and physical iPhone use remain unverified. See [M7 scope](docs/M7-NATIVE-FILES-BROKER.md).
+
+**PiP remains a core FLOATDESK experience.** This native Files helper does not replace existing browser PiP, Desktop Mode or Terminal Preview.
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

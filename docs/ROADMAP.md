@@ -26,6 +26,15 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M7: native owner-scoped read-only Files
+
+- [x] Swift Mac helper performs owner folder picker and file listing inside the same process; original absolute path is never transmitted to Node or the phone.
+- [x] File descriptor-based openat/O_NOFOLLOW traversal and no-follow file type checks; hidden names, symlinks, absolute paths, and file writes excluded.
+- [x] Strict, bounded Node IPC and automatic subprocess kill on revoke, session end, timeout or native process failure.
+- [x] macOS GitHub CI compilation and isolated fixture/symlink traversal test; Node automated regression tests preserve PiP.
+- [ ] Deferred real MacBook M1 + iPhone 16 UI, picker, privacy/TCC, crash, reconnect and PiP tests.
+- [ ] Signed native companion, complete TCC/sandbox threat model and product hardening before production use.
+
 ## M6: native Mac companion bridge — controlled groundwork
 
 - [x] Versioned, locally spawned Swift companion handshake with strict JSON validation, bounded IPC, timeouts, explicit opt-in and **no privileged capabilities by default**.
