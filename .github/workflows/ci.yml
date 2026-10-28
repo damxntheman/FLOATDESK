@@ -17,3 +17,35 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: node --check public/client.js && node --check src/server.js
       - run: npm test
+
+  native-files-broker-macos:
+    runs-on: macos-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile production native Mac Files broker
+        run: |
+          xcrun swiftc native/macos/FloatdeskNativeFilesBroker.swift -o "$RUNNER_TEMP/floatdesk-files-broker"
+      - name: Compile isolated fixture-test variant
+        run: |
+          xcrun swiftc -D FLOATDESK_TESTING native/macos/FloatdeskNativeFilesBroker.swift -o "$RUNNER_TEMP/floatdesk-files-test"
+      - name: Exercise directory FD traversal and metadata boundaries
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/floatdesk-test-root"
+          OUTSIDE="$RUNNER_TEMP/floatdesk-test-private"
+          mkdir -p "$ROOT/Folder" "$OUTSIDE"
+          printf 'secret contents' > "$ROOT/Folder/recording.flp"
+          printf 'hidden' > "$ROOT/.secret"
+          printf 'private' > "$OUTSIDE/token.txt"
+          ln -s "$OUTSIDE" "$ROOT/Escape"
+          "$RUNNER_TEMP/floatdesk-files-test" --self-test "$ROOT" > "$RUNNER_TEMP/files-result.json"
+          python3 - <<'PY'
+          import json,os
+          result=json.load(open(os.path.join(os.environ['RUNNER_TEMP'],'files-result.json')))
+          assert result['traversalDenied'] and result['symlinkDenied']
+          assert result['root']['entries'] == [{'kind':'folder','name':'Folder'}]
+          assert result['nested']['entries'] == [{'kind':'file','name':'recording.flp'}]
+          assert 'secret contents' not in str(result) and 'token.txt' not in str(result)
+          print('Native file broker FD containment smoke test passed')
+          PY
