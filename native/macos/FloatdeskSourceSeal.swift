@@ -12,11 +12,10 @@ import Darwin
 @MainActor
 enum FloatdeskSourceSeal {
     enum SealError: Error { case invalidConfiguration, unsafeFile, tooLarge, unavailable }
-    private static let relevant = [
-        "package.json",
-        "src/managed-host.js",
-        "src/server.js"
-    ]
+    // Seal ALL source files in these two flat research directories, not
+    // merely the entrypoint. Any new/removed file changes the approval.
+    // Nested directories are denied until an explicit audited policy exists.
+    private static let sourceDirs = ["src", "public"]
     private static let maxBytes: UInt64 = 512 * 1024 * 1024
 
     private static func safeHash(of url: URL, executable: Bool) throws -> Data {
@@ -60,10 +59,24 @@ enum FloatdeskSourceSeal {
         let nodeURL = URL(fileURLWithPath:node).resolvingSymlinksInPath()
         var aggregate = SHA256()
         aggregate.update(data:Data("FLOATDESK-LOCAL-SNAPSHOT-V1".utf8))
-        for file in relevant {
-            aggregate.update(data:Data(file.utf8))
-            aggregate.update(data:try safeHash(of:rootURL.appendingPathComponent(file),
-                                               executable:false))
+        aggregate.update(data:Data("package.json".utf8))
+        aggregate.update(data:try safeHash(of:rootURL.appendingPathComponent("package.json"),
+                                           executable:false))
+        for directory in sourceDirs {
+            let sourceURL = rootURL.appendingPathComponent(directory,isDirectory:true)
+            let names = try FileManager.default.contentsOfDirectory(atPath:sourceURL.path).sorted()
+            guard !names.isEmpty, names.count <= 300 else { throw SealError.unsafeFile }
+            aggregate.update(data:Data(directory.utf8))
+            for name in names {
+                guard !name.isEmpty, name != ".", name != "..",
+                      !name.contains("/"), !name.contains("\\") else {
+                    throw SealError.unsafeFile
+                }
+                aggregate.update(data:Data(name.utf8))
+                // Symlinks, nested source dirs and special files fail closed.
+                aggregate.update(data:try safeHash(of:sourceURL.appendingPathComponent(name),
+                                                   executable:false))
+            }
         }
         aggregate.update(data:Data("node".utf8))
         aggregate.update(data:try safeHash(of:nodeURL,executable:true))
