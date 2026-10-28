@@ -64,10 +64,11 @@ The following checklist remains for completing M1; passing the initial PiP exper
 1. Ensure `brew` is installed. Install `mkcert` with `brew install mkcert` and run `mkcert -install`.
 2. Inside the repository: `mkdir -p certs`.
 3. Find the Mac's Wi-Fi IPv4 address using **System Settings → Wi-Fi → Details → TCP/IP**. You may also try `ipconfig getifaddr en0`, but confirm the correct interface on your Mac.
-4. Generate a trusted **development server certificate** containing the actual Mac IP (substitute `192.168.1.20` with your real address):
+4. Generate a trusted **development server certificate** containing the actual Mac IP (enter it locally and **do not include it in GitHub commits or issue comments**):
 
    ```sh
-   mkcert -cert-file certs/lan.pem -key-file certs/lan-key.pem localhost 127.0.0.1 192.168.1.20
+   printf 'Mac LAN IPv4 address: '; read -r MAC_LAN_IP
+   mkcert -cert-file certs/lan.pem -key-file certs/lan-key.pem localhost 127.0.0.1 "$MAC_LAN_IP"
    ```
 
 5. For the iPhone to trust the server certificate, it must trust the local *root CA*. If you accept the security implications, export **only the public certificate**, not the CA private key:

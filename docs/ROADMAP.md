@@ -1,5 +1,11 @@
 # Milestones — evidence before claims
 
+## Permanent product requirements
+
+- **Floating, live Picture-in-Picture is core, not a throwaway prototype.** iPhone Mode (mobile Files/Terminal/apps), Desktop Mode, and PiP must coexist. PiP displays the approved Mac stream while other phone apps are foreground; tapping/returning to FLOATDESK restores the authorized viewer without unnecessary re-pairing. Do not promise mouse input inside the system PiP window.
+- Do not remove the existing user-reported working browser PiP route until a replacement passes real iPhone testing. Measure visual continuity, return/resume, suspension, battery and capture-stop privacy. Hardware tests remain postponed at the owner's request.
+- Never publish a person's actual local or public IP, credentials, private certificates, pairing codes or tokens in repository content. Use generic placeholders in all public setup examples.
+
 ## M0: repository foundation (this change)
 
 - [x] Open-source license, contribution/security policies, implementation boundaries.
