@@ -34,7 +34,7 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
     'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem',
     'filesPanel','filesGrid','filesStatus','filesRootLabel','filesFolderPath','filesLimitNote',
     'chooseFiles','revokeFiles','requestFiles','releaseFiles','closeFiles','filesUp',
-    'openFinderDesktop'
+    'openFinderDesktop', 'probeCompanion', 'companionStatus'
   ];
   ids.forEach(id=>els.set(id,el()));
   const stored = new Map();
@@ -74,6 +74,7 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
   assert.equal(find('iphoneModePanel').hidden,true);
   await receive({type:'joined',code:'ABCDEFGH',token:'phone-token'});
   assert.equal(find('iphoneModePanel').hidden,false);
+  assert.equal(find('probeCompanion').disabled,true,'only Mac host can probe native companion');
   assert.equal(find('requestApps').disabled,false);
   assert.equal(find('openDesktop').disabled,true,'no desktop stream means no view transition');
   find('requestApps').click();

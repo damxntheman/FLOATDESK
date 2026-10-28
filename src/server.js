@@ -16,6 +16,7 @@ import { runTerminalPreview } from './terminal-preview.js';
 import { FilesGrant } from './files-grant.js';
 import { openMacFolderPicker } from './folder-picker.js';
 import { listSafeMetadata } from './files-policy.js';
+import { probeNativeCompanion } from './native-companion.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || '8787');
@@ -46,6 +47,7 @@ const filesRoots = new WeakMap();
 const filesPickers = new WeakMap();
 const nativePickerPath = process.env.FLOATDESK_FOLDER_PICKER_BIN || '';
 const nativeAgentPath = process.env.FLOATDESK_AGENT_BIN || '';
+const nativeCompanionPath = process.env.FLOATDESK_COMPANION_BIN || '';
 function appGrantFor(room) {
   if (!appGrants.has(room)) appGrants.set(room, new AppAccessGrant());
   return appGrants.get(room);
@@ -367,6 +369,32 @@ wss.on('connection', (ws, req) => {
         const lines = runTerminalPreview(data.command);
         grant.useAction();
         send(ws, { type:'terminal-output', command:data.command, lines });
+      } else if (data.type === 'companion-probe') {
+        const entry = registry.forClient(ws);
+        if (!entry || entry.role !== 'host' || !isLocalPeer(ip)) {
+          throw new Error('Only the locally connected Mac owner can check the native companion.');
+        }
+        const room = entry.record;
+        if (!nativeCompanionPath || process.platform !== 'darwin' ||
+            !existsSync(nativeCompanionPath)) {
+          send(ws, {type:'companion-result',state:'unavailable',
+            message:'Native companion probe is not configured. Existing PiP and Desktop Mode are unaffected.'});
+        } else {
+          // The host's opt-in binary receives ONLY a fixed hello handshake.
+          // The paired phone cannot invoke it, even with app/Files grants.
+          probeNativeCompanion({binary:nativeCompanionPath})
+            .then(result => {
+              if (registry.forClient(ws)?.record !== room) return;
+              send(ws, {type:'companion-result',state:'ready',
+                message:'Native companion protocol v' + result.protocolVersion +
+                  ' responded. No privileged native capabilities are enabled.'});
+            })
+            .catch(() => {
+              if (registry.forClient(ws)?.record !== room) return;
+              send(ws, {type:'companion-result',state:'failed',
+                message:'Native companion handshake failed. Existing browser features remain available.'});
+            });
+        }
       } else if (data.type === 'files-request') {
         const entry = registry.forClient(ws);
         if (!entry || entry.role !== 'viewer') {

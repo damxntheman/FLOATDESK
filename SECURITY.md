@@ -43,3 +43,9 @@ The selection helper is separate from Node; it does **not** transfer App Sandbox
 ## Privacy of local network configuration
 
 A private IPv4 address (for example, a generic `192.168.x.x` home-network address) is not directly internet-routable and is not an authentication secret. Nevertheless, do not commit actual personal LAN or public IP addresses, local device names tied to a person, session codes, pairing/resume tokens, root CA private keys, TLS keys or sensitive connection logs to the public repository. Use placeholders in public instructions. **Never port-forward this research prototype or use it on an untrusted network.**
+
+## M6 native companion handshake — no privileges
+
+The optional Swift helper implements only a versioned, fixed, **unprivileged hello** protocol. It cannot capture screens, send input, access files, launch applications or execute shells. The server may spawn it **only for a local authenticated Mac owner request**, using a configured absolute path; no phone-provided path or command is forwarded. Responses must match request IDs and the exact all-false capability structure. Processes time out, fail closed and do not log local paths. In production, a signed native Mac app, XPC/sandbox/TCC design, per-capability host consent, hardened process lifetime, IPC authentication and physical security review are still required.
+
+**PiP privacy boundary:** floating iPhone PiP is view-only and must never imply permission to click, run Terminal commands or browse files. Mac screen capture must continue requiring explicit consent; stopping capture must stop viewer media. Do not replace the currently reported working PiP flow until a native iPhone replacement is physically validated.

@@ -26,6 +26,17 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M6: native Mac companion bridge — controlled groundwork
+
+- [x] Versioned, locally spawned Swift companion handshake with strict JSON validation, bounded IPC, timeouts, explicit opt-in and **no privileged capabilities by default**.
+- [x] Mac-local, host-only readiness check on existing authenticated signaling channel. A paired phone cannot spawn or invoke the native helper.
+- [x] Separate helper from the existing M2 click agent and M5 folder picker; no change to browser capture or iPhone PiP path.
+- [x] Automated failure/role tests: malformed versions, forged capabilities, oversized replies, crashes, timeouts, viewer denial and unsupported platforms.
+- [ ] **Mac physical gate deferred:** build and invoke Swift helper, examine app-signing/entitlements, confirm macOS and host behavior. Do not equate CI with native compilation.
+- [ ] Plan signed native Mac app lifecycle and migrate one bounded function at a time (first: folder picker + file I/O in same permission-scoped process; later: capture + control).
+- [ ] Preserve view-only floating PiP for iPhone while iPhone Mode, Desktop Mode and a native player coexist. Native iOS PiP requires explicit iPhone validation.
+- [ ] Replace the research IPC handshake with an audited, mutually authenticated native companion channel only when real capabilities are being introduced.
+
 ## M5: native-owner-selected, read-only Files Mode
 
 - [x] Finder → phone-native **Files** view with actual folder-name navigation, explicit Finder desktop fallback.

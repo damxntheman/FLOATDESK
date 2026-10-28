@@ -34,7 +34,7 @@ test('control approval expands mobile viewer, exit revokes and leaves pairing in
     'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem',
     'filesPanel','filesGrid','filesStatus','filesRootLabel','filesFolderPath','filesLimitNote',
     'chooseFiles','revokeFiles','requestFiles','releaseFiles','closeFiles','filesUp',
-    'openFinderDesktop'
+    'openFinderDesktop', 'probeCompanion', 'companionStatus'
   ];
   ids.forEach((id) => list.set(id, el()));
   const classes = new Set();

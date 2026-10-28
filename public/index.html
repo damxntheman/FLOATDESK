@@ -44,6 +44,12 @@
           <p class="hint">A paired phone may request to browse file and folder names. You choose the specific folder using a native Mac dialog. No file contents, transfers, edits or deletes.</p>
           <div class="actions"><button id="chooseFiles" disabled>Choose folder on Mac</button><button id="revokeFiles" disabled>Revoke Files access</button></div>
         </div>
+        <div class="control-panel">
+          <h3>Native Mac companion · M6 handshake</h3>
+          <p class="hint">Optional, Mac-local research check. The native probe currently grants no screen, input, Files or Terminal capabilities and does not replace browser PiP.</p>
+          <div class="actions"><button id="probeCompanion" disabled>Check companion readiness</button></div>
+          <p id="companionStatus" class="hint" role="status" aria-live="polite">Not checked. PiP and Desktop Mode remain available without it.</p>
+        </div>
         <p class="hint">Stop sharing turns off desktop video but keeps your phone paired. Share screen always asks for fresh browser permission. End session disconnects both devices. Capture requires HTTPS or localhost.</p>
       </article>
       <article class="panel" id="viewerPanel">
