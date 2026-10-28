@@ -16,7 +16,8 @@ const buttons = {
   chooseFiles: $('chooseFiles'), revokeFiles: $('revokeFiles'),
   requestFiles: $('requestFiles'), releaseFiles: $('releaseFiles'),
   closeFiles: $('closeFiles'), filesUp: $('filesUp'),
-  openFinderDesktop: $('openFinderDesktop')
+  openFinderDesktop: $('openFinderDesktop'),
+  probeCompanion: $('probeCompanion')
 };
 const video = $('video');
 const stateKey = 'floatdesk-prototype-session-v1';
@@ -359,6 +360,7 @@ function remember(value) {
   else sessionStorage.removeItem(stateKey);
   syncHostCaptureControls();
   buttons.stop.disabled = !value || value.role !== 'host';
+  buttons.probeCompanion.disabled = !value || value.role !== 'host';
   buttons.create.disabled = Boolean(value);
   buttons.join.disabled = Boolean(value);
   buttons.refresh.disabled = !value || value.role !== 'viewer';
@@ -587,6 +589,11 @@ async function handleMessage(data) {
     if (identity?.role === 'viewer' && appAccessPhase === 'active') {
       $('appLaunchStatus').textContent = data.name + ' was opened on your Mac.';
     }
+  } else if (data.type === 'companion-result') {
+    if (identity?.role === 'host') {
+      $('companionStatus').textContent = typeof data.message === 'string'
+        ? data.message.slice(0, 220) : 'Native companion status unavailable.';
+    }
   } else if (data.type === 'terminal-state') {
     showTerminalState(data.state, data.message);
   } else if (data.type === 'terminal-output') {
@@ -722,6 +729,12 @@ buttons.toggleHostPreview.addEventListener('click', () => {
 buttons.refresh.addEventListener('click', () => {
   if (identity?.role !== 'viewer') return;
   if (send({ type: 'request-video' })) status('Requesting new video from the Mac…');
+});
+buttons.probeCompanion.addEventListener('click', () => {
+  if (identity?.role !== 'host') return;
+  if (send({type:'companion-probe'})) {
+    $('companionStatus').textContent = 'Checking opt-in native companion…';
+  }
 });
 buttons.requestFiles.addEventListener('click', () => send({type:'files-request'}));
 buttons.releaseFiles.addEventListener('click', () => send({type:'files-revoke'}));
