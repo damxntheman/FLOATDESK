@@ -66,6 +66,13 @@ struct FloatdeskLocalServiceSmoke {
             fputs("Loopback-only dashboard did not respond\n", stderr)
             exit(8)
         }
+        // Stop is deliberately nonblocking for AppKit; wait in THIS CI
+        // harness for the child to exit, then release the owner lock.
+        for _ in 0..<60 {
+            if !service.isRunning { break }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        service.reapExited()
         // The service is not auto-restarted after Stop.
         guard !service.isRunning else {
             fputs("Managed service remained attached after stop\n", stderr)

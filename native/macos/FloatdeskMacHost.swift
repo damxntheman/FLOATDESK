@@ -147,16 +147,19 @@ final class FloatdeskMenuDelegate: NSObject, NSApplicationDelegate {
 
 extension FloatdeskMenuDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
+        localService.reapExited()
         let running = localService.isRunning
         let configured = settings.configured
         configurationStatus?.title = configured
             ? "Local dashboard · configured on this Mac"
             : "Local dashboard · choose project and Node"
-        localStatus?.title = running ? "Local research service · running on 127.0.0.1:8789"
-            : "Local research service · stopped"
-        localStart?.isEnabled = !running && configured
-        localStop?.isEnabled = running
-        localOpen?.isEnabled = running
+        let stopping = localService.isStopping
+        localStatus?.title = stopping ? "Local research service · stopping…"
+            : (running ? "Local research service · running on 127.0.0.1:8789"
+                : "Local research service · stopped")
+        localStart?.isEnabled = !running && !stopping && configured
+        localStop?.isEnabled = running && !stopping
+        localOpen?.isEnabled = running && !stopping
     }
 }
 
