@@ -26,6 +26,16 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M12: owner-approved local code snapshot and distribution gate
+
+- [x] Local-only Mac setup records SHA-256 digest of the selected Node executable plus all current root-level `src/`, `public/` and `package.json` files. Missing, new, changed, symlinked, non-regular or unsafe-mode files cause fail-closed reapproval.
+- [x] Before starting a managed **127.0.0.1:8789** instance, Mac Host verifies the snapshot after acquiring the M11 instance lock; it does not silently restart modified code.
+- [x] Source-change macOS CI fixtures for server modules, iPhone UI files and newly added modules; no phone or outside-LAN endpoint is introduced.
+- [x] Dedicated release verification script requires reviewed Developer ID team, signature, hardened runtime and Gatekeeper assessment; macOS CI explicitly proves ad-hoc development builds are rejected.
+- [ ] Real Mac owner selection, GUI responsiveness of hashing Node, source permissions, M2–M11 integrations and iPhone PiP tests remain deferred.
+- [ ] **Astra review handoff recommended when proceeding to signed service identity, hardened runtime entitlements, XPC and TCC.** Snapshot is not anti-malware trust or complete content-supply-chain provenance.
+- [ ] **Opus handoff** remains reserved for the major iPhone Mode redesign after hardware interactions are proven.
+
 ## M11: Mac GUI configuration and duplicate-manager lock
 
 - [x] Add Mac-native **Configure local dashboard** flow with two owner-selected panels (trusted project directory and Node executable), atomic save, local UserDefaults persistence and explicit Clear.

@@ -43,3 +43,7 @@ On an unexpected menu-owner death, macOS closes the lock FD, while the M10 stdin
 - [ ] Verify macOS privacy/TCC, signing, app sandbox, source integrity and hardened shutdown before a wider beta.
 
 **Future model handoff:** Astra is appropriate when we truly need deep signed macOS host, XPC/TCC, code-signing and service-lifecycle security review. Opus is for the later premium iPhone UX redesign. No handoff has happened.
+
+## M12 follow-up: local change detection
+
+Mac-selected project and Node paths now receive a local SHA-256 snapshot of the executable and current research browser/server source. If that code changes before a new managed 8789 Start, the menu requires the Mac owner to reapprove via **Configure local dashboard…**. This is a development change detector, not signed binary identity or a substitute for macOS TCC security. See [M12](M12-LOCAL-INTEGRITY.md).
