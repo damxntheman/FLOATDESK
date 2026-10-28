@@ -18,8 +18,8 @@ final class FloatdeskLocalService {
     private let instanceLock: FloatdeskInstanceLock
     private(set) var isStopping = false
 
-    init(instanceLock: FloatdeskInstanceLock = FloatdeskInstanceLock()) {
-        self.instanceLock = instanceLock
+    init(instanceLock: FloatdeskInstanceLock? = nil) {
+        self.instanceLock = instanceLock ?? FloatdeskInstanceLock()
     }
 
     var isRunning: Bool { child?.isRunning ?? false }
