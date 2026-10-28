@@ -1,5 +1,11 @@
 # Architecture and non-goals
 
+## M8: native macOS host shell + local-only inventory
+
+`native/macos/FloatdeskMacHost.swift` adds an AppKit **menu bar shell** packaged via `scripts/build-mac-host.sh` using `native/macos/MacHost-Info.plist`. It has no listener, no remote API, no login item, and no entitlement-privileged service; it **only** opens the fixed `https://localhost:8788` dashboard when the Mac owner selects a menu item. It does not start, manage or authenticate the Node server yet. Ad hoc signing in macOS CI validates packaging only.
+
+`src/native-host-inventory.js` gives the authenticated loopback Mac host a status-only list of optional native binaries, with no paths or permission changes. `native-host-status` is forbidden to the phone and unpaired sockets. A status of `configured` is **not** verification of a code signature, parent directory trust, TCC authorization or Mac device behavior. Screen capture/PiP and per-capability grants remain independent. See [M8 documentation](M8-MAC-HOST-SHELL.md).
+
 ## M7: fd-rooted Mac Files broker
 
 The optional native/macos/FloatdeskNativeFilesBroker.swift uses NSOpenPanel and retains the selected directory file descriptor in the SAME process. All nested directory traversal uses openat with O_NOFOLLOW; directory entry metadata uses fstatat without following symlinks. Node src/native-files-broker.js receives only owner-selected folder LABEL and bounded relative metadata, validates request IDs/schemas, and terminates the native process on revoke, exit, timeout or disconnect. Enable through FLOATDESK_NATIVE_FILES_BIN, otherwise use the existing M5 research path. Neither M7 nor M5 has verified real Mac TCC permissions; CI is not a substitute for physical acceptance. Full details: [M7 document](M7-NATIVE-FILES-BROKER.md).
