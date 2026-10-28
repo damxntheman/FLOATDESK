@@ -21,7 +21,8 @@ struct FloatdeskLocalServiceSmoke {
             fputs("Unsafe configured paths accepted\n", stderr)
             exit(3)
         }
-        do { try service.start(root: root, nodePath: node) }
+        let approved = try? FloatdeskSourceSeal.make(root:root,node:node)
+        do { try service.start(root: root, nodePath: node, approvedSeal: approved) }
         catch {
             fputs("Managed service failed to start\n", stderr)
             exit(4)
@@ -31,7 +32,7 @@ struct FloatdeskLocalServiceSmoke {
             exit(5)
         }
         do {
-            try service.start(root: root, nodePath: node)
+            try service.start(root: root, nodePath: node, approvedSeal: approved)
             fputs("Duplicate child process was allowed\n", stderr)
             service.stop()
             exit(6)

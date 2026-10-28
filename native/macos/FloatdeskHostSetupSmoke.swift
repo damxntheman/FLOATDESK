@@ -46,14 +46,16 @@ struct FloatdeskHostSetupSmoke {
         guard !config.configured else {exit(4)}
         do {try config.save(root:root,node:node)}
         catch {exit(5)}
-        guard config.configured,config.root==root,config.node==node else {exit(6)}
+        guard config.configured,config.root==root,config.node==node,
+              config.approvedSeal?.count==64 else {exit(6)}
 
         // Bad updates never replace previously stored working settings.
         do { try config.save(root:"/not/a/repository",node:node);exit(7) }
         catch {}
         guard config.root == root && config.configured else {exit(8)}
         config.clear()
-        guard !config.configured,config.root==nil,config.node==nil else {exit(9)}
+        guard !config.configured,config.root==nil,config.node==nil,
+              config.approvedSeal==nil else {exit(9)}
 
         let directory=FileManager.default.temporaryDirectory
             .appendingPathComponent("FLOATDESK-lock-" + UUID().uuidString,isDirectory:true)

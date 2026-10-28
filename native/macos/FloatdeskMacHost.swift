@@ -99,11 +99,12 @@ final class FloatdeskMenuDelegate: NSObject, NSApplicationDelegate {
         // Explicit Mac user interaction only; no login item, auto-start,
         // phone command, remote socket or automatic privileged permission.
         do {
-            try localService.start(root: settings.root, nodePath: settings.node)
+            try localService.start(root: settings.root, nodePath: settings.node,
+                                   approvedSeal: settings.approvedSeal)
         } catch {
             let alert = NSAlert()
             alert.messageText = "Local research service was not started"
-            alert.informativeText = "Use Configure local dashboard to select a trusted FLOATDESK checkout and Node. If another Mac Host is already running, close its managed local service first. HTTPS/PiP on 8788 remains unaffected."
+            alert.informativeText = "Configure the trusted checkout and Node again if either has changed, or close another running Mac Host. The independent HTTPS/PiP server on 8788 is unaffected."
             alert.alertStyle = .warning
             alert.runModal()
         }

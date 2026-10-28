@@ -49,7 +49,7 @@ final class FloatdeskLocalService {
             FileManager.default.isExecutableFile(atPath: nodeURL.path)
     }
 
-    func start(root: String?, nodePath: String?) throws {
+    func start(root: String?, nodePath: String?, approvedSeal: String?) throws {
         reapExited()
         guard child == nil && !isStopping else { throw StartError.alreadyRunning }
         guard root != nil && nodePath != nil else { throw StartError.notConfigured }
@@ -60,6 +60,10 @@ final class FloatdeskLocalService {
         try instanceLock.acquire()
         var started = false
         defer { if !started { instanceLock.release() } }
+        // Fail closed when any locally approved source or Node executable
+        // has changed. Owner must explicitly select/approve configuration again.
+        guard FloatdeskSourceSeal.matches(root:root,node:nodePath,approved:approvedSeal)
+        else { throw StartError.unsafeSource }
         let folder = URL(fileURLWithPath: root, isDirectory: true).resolvingSymlinksInPath()
         let node = URL(fileURLWithPath: nodePath).resolvingSymlinksInPath()
         let script = folder.appendingPathComponent("src/managed-host.js")

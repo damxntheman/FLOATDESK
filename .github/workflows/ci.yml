@@ -61,18 +61,31 @@ jobs:
           FLOATDESK_ADHOC_SIGN: '1'
         run: |
           bash scripts/build-mac-host.sh "$RUNNER_TEMP"
+      - name: Ensure ad-hoc research Mac build is REFUSED by release gate
+        run: |
+          set -euo pipefail
+          if FLOATDESK_EXPECTED_TEAM_ID=AAAAAAAAAA bash scripts/verify-mac-release.sh "$RUNNER_TEMP/FLOATDESK Mac Host.app"; then
+            echo "FAIL: development build incorrectly passed the production gate" >&2
+            exit 1
+          fi
+          echo "M12 production release gate correctly blocks ad-hoc Mac bundle"
       - name: Install Node dependencies for local service smoke test
         run: npm install --no-audit --no-fund
       - name: Compile and exercise explicit Mac-owned local lifecycle
         run: |
           set -euo pipefail
-          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskLocalServiceSmoke.swift -o "$RUNNER_TEMP/floatdesk-local-service-smoke"
+          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskSourceSeal.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskLocalServiceSmoke.swift -o "$RUNNER_TEMP/floatdesk-local-service-smoke"
           FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-local-service-smoke"
       - name: Compile and validate local GUI configuration/locking policy
         run: |
           set -euo pipefail
-          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskHostSettings.swift native/macos/FloatdeskHostSetupSmoke.swift -o "$RUNNER_TEMP/floatdesk-host-setup-test"
+          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskSourceSeal.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskHostSettings.swift native/macos/FloatdeskHostSetupSmoke.swift -o "$RUNNER_TEMP/floatdesk-host-setup-test"
           FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-host-setup-test"
+      - name: Verify local trust snapshot refuses changed server and browser code
+        run: |
+          set -euo pipefail
+          xcrun swiftc -parse-as-library native/macos/FloatdeskInstanceLock.swift native/macos/FloatdeskSourceSeal.swift native/macos/FloatdeskLocalService.swift native/macos/FloatdeskHostSettings.swift native/macos/FloatdeskSealSmoke.swift -o "$RUNNER_TEMP/floatdesk-source-seal-test"
+          FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-source-seal-test"
       - name: Verify lock exclusion across independent processes and owner crash
         run: |
           set -euo pipefail

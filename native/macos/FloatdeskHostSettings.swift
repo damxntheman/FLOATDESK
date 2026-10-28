@@ -14,8 +14,9 @@ final class FloatdeskHostSettings {
 
     var root: String? { defaults.string(forKey: prefix + "repository") }
     var node: String? { defaults.string(forKey: prefix + "node") }
+    var approvedSeal: String? { defaults.string(forKey: prefix + "approvedSeal") }
     var configured: Bool {
-        FloatdeskLocalService.validSource(root: root, nodePath: node)
+        FloatdeskSourceSeal.matches(root:root,node:node,approved:approvedSeal)
     }
 
     func save(root: String, node: String) throws {
@@ -23,14 +24,18 @@ final class FloatdeskHostSettings {
             throw NSError(domain:"FLOATDESK",code:11,
                           userInfo:[NSLocalizedDescriptionKey:"Choose a FLOATDESK repository and a working Node executable."])
         }
-        // Persist ONLY two user-selected executable/source paths.
+        // Snapshot reviewable local project code AND selected Node binary.
+        // This is a change detector, not notarization or code signing.
+        let seal = try FloatdeskSourceSeal.make(root:root,node:node)
         defaults.set(root, forKey: prefix + "repository")
         defaults.set(node, forKey: prefix + "node")
+        defaults.set(seal, forKey: prefix + "approvedSeal")
     }
 
     func clear() {
         defaults.removeObject(forKey: prefix + "repository")
         defaults.removeObject(forKey: prefix + "node")
+        defaults.removeObject(forKey: prefix + "approvedSeal")
     }
 
     func chooseUsingMacDialogs() throws -> Bool {

@@ -73,6 +73,12 @@ The macOS menu-bar research app now includes **Configure local dashboard…**. A
 
 An advisory single-owner file lock guards the *Mac-only* managed dashboard on `127.0.0.1:8789` against duplicate launch across menu instances; the lock is held until the owned service actually exits. This **does not start the service automatically** or change the existing trusted-LAN HTTPS port 8788 used for **floating iPhone PiP**. See [M11 scope](docs/M11-MAC-SETUP-LOCK.md).
 
+## M12: Mac Host local source approval and production-release block
+
+When you select a trusted project folder and Node executable through the Mac menu, M12 records a **local SHA-256 snapshot** of Node, `package.json`, every current top-level file in `src/`, and every top-level file in `public/`. Changes, additions and removals prevent the separate **Mac-only** research service from starting until you intentionally reconfigure it. This checks for **unexpected local changes, not software authenticity**: it is not Developer ID signing, notarization, malware scanning or proof of macOS sandbox/TCC permissions.
+
+The new [fail-closed Mac release gate](scripts/verify-mac-release.sh) refuses our **ad-hoc-signed** CI bundle and requires a reviewed Developer ID Application team, hardened runtime and a successful Gatekeeper check before any future production candidate is considered. Even then, human security/device review is required. **PiP, Desktop Mode and iPhone Mode are unaffected.** See [M12 scope](docs/M12-LOCAL-INTEGRITY.md). Physical-device checks remain deferred.
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

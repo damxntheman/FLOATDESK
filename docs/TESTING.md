@@ -148,3 +148,7 @@ GitHub CI now tests Node managed-host wrapper's refusal of LAN/TLS escalation, e
 ## M11 configuration/locking — deferred physical GUI acceptance
 
 macOS CI compiles the AppKit menu, native settings panel code and owner-specific lock. A headless Swift test checks atomic local UserDefaults configuration/clear and lock exclusion; a separate cross-process CI scenario acquires a lock, rejects another process and confirms release after owner exit. The older M9–M10 startup/EOF crash tests still apply. **No physical Mac picker interaction, signed binary trust, actual iPhone PiP or system-permission behavior has been checked.** See [M11 checklist](M11-MAC-SETUP-LOCK.md).
+
+## M12 Mac local integrity and release blocker — device checks deferred
+
+GitHub macOS CI now hashes the selected Node executable and checked-out app code, mutates a backend module and iPhone HTML asset, adds a source file, and ensures each alteration invalidates the previous Mac-owner approval. The Mac Host build and previous M7–M11 CI continue. The ad-hoc development app must **fail** the new Developer ID/hardened-runtime/Gatekeeper production-release check. **Neither the actual physical Mac GUI approval performance nor a signed/notarized build or iPhone PiP has been verified.** [M12 checklist](M12-LOCAL-INTEGRITY.md).

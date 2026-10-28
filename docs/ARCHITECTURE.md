@@ -1,5 +1,11 @@
 # Architecture and non-goals
 
+## M12: local source approval seal, not a signing trust root
+
+`FloatdeskSourceSeal.swift` hashes the Mac-owner-selected Node executable, `package.json`, all current flat files in `src/` and `public/` with bounded streaming SHA-256. The owner-approved digest is saved in local `UserDefaults` alongside the two non-secret paths. On Start, the Mac Host first obtains its M11 instance lock and compares the current snapshot to the saved approval, then launches only the separately managed loopback **8789** research process. Changed/new/missing/symlinked sources are refused until explicit Mac reconfiguration. The existing trusted-LAN HTTPS **8788**, PiP and iPhone application workflows are not touched.
+
+This detects accidental modifications to selected source, but does **not** prove signed code identity, protect a malicious same-user attacker, pin runtime `node_modules` packages, eliminate check/use races, validate the Node executable's provenance, or grant macOS privacy/TCC permission. The future production gate script checks Developer ID, hardened runtime and Gatekeeper status but is **not** a substitute for notarization workflow, entitlements audit, physical testing or security review. See [M12](M12-LOCAL-INTEGRITY.md).
+
 ## M11: local Mac Host setup & duplicate lock
 
 `FloatdeskHostSettings.swift` stores exactly two owner-selected, *non-secret* absolute Mac paths in local macOS UserDefaults, only after both valid selections complete; a cancelled dialog leaves previous settings unchanged. The menu's Start action reads those saved paths, so the user need not launch the menu app through a Terminal environment. This is still a locally trusted research checkout, **not** binary signature verification.
