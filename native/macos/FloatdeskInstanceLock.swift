@@ -4,6 +4,11 @@
 import Foundation
 import Darwin
 
+// macOS Swift imports the C `flock` structure under the same name as the
+// flock(2) function. Bind explicitly to the libc symbol to avoid ambiguity.
+@_silgen_name("flock")
+private func floatdeskFlock(_ descriptor: Int32, _ operation: Int32) -> Int32
+
 @MainActor
 final class FloatdeskInstanceLock {
     enum LockError: Error { case unavailable, busy, unsafeFile }
@@ -38,7 +43,7 @@ final class FloatdeskInstanceLock {
             Darwin.close(fd)
             throw LockError.unsafeFile
         }
-        if Darwin.flock(fd, LOCK_EX | LOCK_NB) != 0 {
+        if floatdeskFlock(fd, LOCK_EX | LOCK_NB) != 0 {
             Darwin.close(fd)
             throw LockError.busy
         }
@@ -47,7 +52,7 @@ final class FloatdeskInstanceLock {
 
     func release() {
         guard descriptor >= 0 else { return }
-        Darwin.flock(descriptor, LOCK_UN)
+        floatdeskFlock(descriptor, LOCK_UN)
         Darwin.close(descriptor)
         descriptor = -1
     }
