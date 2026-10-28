@@ -1,5 +1,11 @@
 # Architecture and non-goals
 
+## M6: native Mac companion handshake boundary
+
+`src/native-companion.js` talks to an **explicitly configured, locally spawned native macOS binary** over a bounded stdio JSON line. This stage accepts only `version:1`, `hello` + random 128-bit `requestId`, then expects a matching `hello-ack` and a strictly **all-false** capability map. It refuses mismatched protocol versions, unsolicited privileges, invalid JSON, oversized frames, timeouts and process crashes. The helper exits after one response. The server's `companion-probe` action is permitted only to the **authenticated local Mac host**, never the paired phone. No remote payload is forwarded to the helper. This is not yet a production XPC service, screen capturer, native PiP pipeline or privilege escalation mechanism.
+
+**PiP is core to the product** and remains separate from all privileged input/file/Terminal operations; it continues using the user-reported working browser/WebRTC viewer until a native iOS version passes real tests. See [M6 plan](M6-NATIVE-COMPANION.md).
+
 ## M5: opt-in native Mac folder chooser and read-only Files
 
 `src/files-policy.js` provides restricted folder metadata enumeration. A separate Mac-local owner click invokes a **compiled** `NSOpenPanel` helper with no user-supplied command paths; the selected folder is retained only in server memory. The phone never sends an absolute path and never sees the full root path. `FilesGrant` is independent of the existing application, Terminal Preview and touch grants. The picker is **not configured by default**; browse requests are rejected until the owner opts into `FLOATDESK_FOLDER_PICKER_BIN`. The Mac server enforces a selected-root-only, relative-path, read-only listing protocol.

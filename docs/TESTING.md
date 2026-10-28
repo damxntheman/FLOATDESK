@@ -124,3 +124,7 @@ The iPhone-native Terminal Preview and internal Files Mode safety policy have au
 ## M5 Files Mode device acceptance postponed
 
 The owner is not testing on MacBook/iPhone right now. M5 native folder-picker compilation, macOS privacy access, safe browsing and revocation are therefore **unverified on hardware**. See [M5 checklist](M5-FILES-MODE.md); do not mark accepted based on CI alone.
+
+## M6 native Mac companion research gate (deferred)
+
+The optional helper's protocol is unit-tested using mocked processes. **No physical Swift compilation, native macOS execution, native capture or native iPhone PiP verification has occurred for M6.** The owner requested deferred device checks. See [M6 scope/checklist](M6-NATIVE-COMPANION.md). The Mac readiness check reports protocol agreement only and must not be mistaken for an operational native Mac companion.

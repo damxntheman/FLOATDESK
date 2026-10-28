@@ -43,6 +43,10 @@ In the next research increment, Apple's built-in Terminal app tile opens a **pho
 
 Tapping a supported **Finder** tile now opens a phone-friendly, **read-only Files** screen. The paired phone can ask the **Mac owner to select a specific folder using a native `NSOpenPanel` helper** (a separately compiled, opt-in Swift binary). Only names of folders and files are returned; no file contents, transfers, modifications or arbitrary phone paths. Access expires after five minutes, independently of app/Terminal/mouse permissions. **Native picker, sandbox and TCC access are not yet validated on a physical Mac.** See [M5 scope and device gates](docs/M5-FILES-MODE.md).
 
+## M6: native Mac companion architecture handshake
+
+A separate, **opt-in Mac-native Swift probe** and a fail-closed Node process bridge now agree on a versioned, local-only handshake. The Mac owner can click **Check companion readiness** in Chrome to verify the bridge is reachable. It currently reports **zero privileged capabilities**: no native capture, input, file access, terminal or native iOS PiP. All previously implemented browser Desktop Mode, **view-only PiP**, app launcher, Terminal Preview and Files Mode paths remain unchanged. Swift compilation and device permission behavior are **not physically verified**. See [M6 architecture and safe opt-in](docs/M6-NATIVE-COMPANION.md).
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.
