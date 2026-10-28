@@ -136,3 +136,7 @@ The native Swift broker is compiled and fixture-tested on GitHub's macOS runner.
 ## M8 macOS host shell — deferred device acceptance
 
 GitHub CI compiles the Swift menu bar shell, assembles a research `.app`, validates its plist and applies **ad hoc signing only**. Node tests check that only the authenticated local Mac host can query sanitized service configuration. **No physical Mac menu bar, app opening, native TCC or iPhone PiP acceptance has occurred in M8.** The owner requested continuing development without physical testing. See [M8 checklist](M8-MAC-HOST-SHELL.md).
+
+## M9 deferred device validation
+
+macOS CI compiles the new Swift service manager and proves loopback Node start, duplicate denial, HTTP response and Stop via a separate smoke harness. **Not yet validated:** physical Mac menu clicks, process termination after app crash, native signing/TCC or iPhone PiP regression. Owner requested postponing physical tests. See [M9 checklist](M9-LOCAL-SERVICE-LIFECYCLE.md).

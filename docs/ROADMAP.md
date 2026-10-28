@@ -26,6 +26,15 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M9: opt-in Mac-owned loopback service
+
+- [x] Native Mac menu Start, Stop and Open for a distinct local Node research instance on `127.0.0.1:8789`, never the original LAN/PiP server on 8788.
+- [x] Only a local user action spawns the owned `Process`, using opt-in absolute checkout and Node binary paths, a scrubbed environment and no inherited TLS/native-helper secrets.
+- [x] Duplicate-start refusal within one shell, explicit Stop/Quit for the owned process, no auto-restart, no login item.
+- [x] macOS CI compiles and exercises Node start, duplicate denial, local HTTP and Stop; regression test guards existing PiP.
+- [ ] Physical Mac user-menu checks and crash/orphan/duplicate-process hardening before production, owner defers device testing.
+- [ ] Future LAN-capable native host requires signed identity, authenticated consent and PiP regression validation, not automatic promotion of 8789.
+
 ## M8: macOS menu bar host integration — research shell
 
 - [x] Compile an AppKit menu bar shell with local-only **Open Mac dashboard** action; research Node browser server still started separately, not bundled or managed by this shell.

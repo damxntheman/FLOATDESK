@@ -59,6 +59,10 @@ M8 adds a minimal macOS **FLOATDESK Mac Host.app** menu bar shell that opens the
 
 **iPhone PiP remains permanently supported** alongside Desktop Mode and iPhone Mode. The owner is continuing software development **without physical testing for now**.
 
+## M9: operator-controlled local Mac service
+
+A newly built menu-bar **Start / Stop / Open local dashboard** flow manages only a locally spawned Node research server at `127.0.0.1:8789`. Requires explicit opt-in configuration (`FLOATDESK_REPO_ROOT`, `FLOATDESK_NODE_BIN`) and a Mac click. No autostart, inherited secrets, LAN listener or phone-triggered action. The existing manually managed HTTPS service on **8788**, Safari PiP, Desktop Mode and iPhone Mode remain separate. See [M9 notes](docs/M9-LOCAL-SERVICE-LIFECYCLE.md). Tests run in macOS CI; real Mac/iPhone testing remains deferred.
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.
