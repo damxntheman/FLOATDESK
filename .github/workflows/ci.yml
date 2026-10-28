@@ -68,6 +68,22 @@ jobs:
           set -euo pipefail
           xcrun swiftc -parse-as-library native/macos/FloatdeskLocalService.swift native/macos/FloatdeskLocalServiceSmoke.swift -o "$RUNNER_TEMP/floatdesk-local-service-smoke"
           FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-local-service-smoke"
+      - name: Simulate Mac menu process death and verify child shuts down
+        run: |
+          set -euo pipefail
+          FLOATDESK_REPO_ROOT="$GITHUB_WORKSPACE" FLOATDESK_NODE_BIN="$(command -v node)" "$RUNNER_TEMP/floatdesk-local-service-smoke" --simulate-owner-death
+          python3 - <<'PY'
+          import socket,time
+          for _ in range(60):
+              try:
+                  with socket.create_connection(('127.0.0.1',8789),timeout=.15): pass
+              except OSError:
+                  print('M10 owner-death cleanup: local server is closed')
+                  break
+              time.sleep(.1)
+          else:
+              raise SystemExit('Managed child survived parent pipe closure')
+          PY
       - name: Inspect app bundle and assert no automatic services or permissions
         run: |
           python3 - <<'PY'

@@ -50,6 +50,17 @@ struct FloatdeskLocalServiceSmoke {
                text.contains("FLOATDESK") { reached = true; break }
             Thread.sleep(forTimeInterval: 0.1)
         }
+        if CommandLine.arguments.contains("--simulate-owner-death") {
+            guard reached else {
+                fputs("Failed to establish owner-launched loopback service\n", stderr)
+                service.stop()
+                exit(10)
+            }
+            // _exit bypasses normal Swift cleanup/stop(); the OS alone
+            // closes the owner's pipe FD. The Node wrapper must detect EOF.
+            fflush(stdout)
+            _exit(0)
+        }
         service.stop()
         if !reached {
             fputs("Loopback-only dashboard did not respond\n", stderr)
