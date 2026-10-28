@@ -16,8 +16,7 @@ final class FloatdeskHostSettings {
     var node: String? { defaults.string(forKey: prefix + "node") }
     var approvedSeal: String? { defaults.string(forKey: prefix + "approvedSeal") }
     var configured: Bool {
-        FloatdeskLocalService.validSource(root: root, nodePath: node) &&
-            approvedSeal != nil
+        FloatdeskSourceSeal.matches(root:root,node:node,approved:approvedSeal)
     }
 
     func save(root: String, node: String) throws {
