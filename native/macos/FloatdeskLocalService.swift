@@ -15,6 +15,11 @@ final class FloatdeskLocalService {
     static let port = "8789"
     private var child: Process?
     private var ownerPipe: Pipe?
+    private let instanceLock: FloatdeskInstanceLock
+
+    init(instanceLock: FloatdeskInstanceLock = FloatdeskInstanceLock()) {
+        self.instanceLock = instanceLock
+    }
 
     var isRunning: Bool { child?.isRunning ?? false }
 
@@ -42,6 +47,9 @@ final class FloatdeskLocalService {
             throw StartError.unsafeSource
         }
         guard let root, let nodePath else { throw StartError.notConfigured }
+        try instanceLock.acquire()
+        var started = false
+        defer { if !started { instanceLock.release() } }
         let folder = URL(fileURLWithPath: root, isDirectory: true).resolvingSymlinksInPath()
         let node = URL(fileURLWithPath: nodePath).resolvingSymlinksInPath()
         let script = folder.appendingPathComponent("src/managed-host.js")
@@ -67,15 +75,20 @@ final class FloatdeskLocalService {
         // dies, EOF propagates to the Node child.
         ownerPipe = pipe
         child = process
+        started = true
     }
 
     func stop() {
-        guard let process = child else { return }
+        guard let process = child else {
+            instanceLock.release()
+            return
+        }
         child = nil
         // Closing ownership writer causes the child to exit even if SIGTERM
         // is not observed. SIGTERM is also sent for prompt normal Stop/Quit.
         ownerPipe?.fileHandleForWriting.closeFile()
         ownerPipe = nil
         if process.isRunning { process.terminate() }
+        instanceLock.release()
     }
 }
