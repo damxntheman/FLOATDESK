@@ -10,6 +10,8 @@ test('only trusted canonical macOS Terminal bundle maps to phone-native preview'
   assert.equal(experienceFor(canonical).type, 'mobile-terminal-preview');
   assert.equal(experienceFor(canonical).isFullShell, false);
   assert.equal(experienceFor(fake).type, 'desktop-launch');
+  assert.equal(experienceFor({name:'Finder',path:'/System/Library/CoreServices/Finder.app'}).type, 'mobile-files');
+  assert.equal(experienceFor({name:'Finder',path:'/Applications/Finder.app'}).type, 'desktop-launch');
   assert.equal(experienceFor({name:'Finder',path:'/System/Library/CoreServices/Finder.app'}).type, 'desktop-launch');
   assert.deepEqual(publicExperience(canonical), {
     id:canonical.id,name:'Terminal',experience:'mobile-terminal-preview'

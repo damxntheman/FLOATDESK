@@ -31,7 +31,10 @@ test('control approval expands mobile viewer, exit revokes and leaves pairing in
     'approveApps', 'revokeApps', 'openDesktop',
     'iphoneModeHome', 'terminalPanel', 'terminalTranscript', 'terminalForm', 'terminalCommand',
     'terminalStatus', 'requestTerminal', 'releaseTerminal', 'approveTerminal', 'revokeTerminal',
-    'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem'
+    'closeTerminal', 'runTerminalCommand', 'cmdHelp', 'cmdDate', 'cmdUptime', 'cmdSystem',
+    'filesPanel','filesGrid','filesStatus','filesRootLabel','filesFolderPath','filesLimitNote',
+    'chooseFiles','revokeFiles','requestFiles','releaseFiles','closeFiles','filesUp',
+    'openFinderDesktop'
   ];
   ids.forEach((id) => list.set(id, el()));
   const classes = new Set();
