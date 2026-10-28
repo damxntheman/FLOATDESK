@@ -1,5 +1,9 @@
 # Architecture and non-goals
 
+## M10: parent lifetime-bound loopback child
+
+`FloatdeskLocalService.swift` now launches `src/managed-host.js` rather than `src/server.js` directly. The Mac menu keeps the write side of an anonymous pipe as a parent-ownership signal, with the child reading stdin. If the owner exits abnormally, the OS closes its FD and the Node wrapper exits on EOF. Normal Stop/Quit closes the pipe and targets the owned `Process` for termination. The wrapper refuses other hosts, ports and TLS variables before importing the unchanged browser research server. This is **only** for Mac loopback port 8789; manually run HTTPS port 8788 with Safari PiP remains independent. This is not an OS daemon or a persistent crash recovery mechanism; see [M10 scope](M10-PARENT-BOUND-RECOVERY.md).
+
 ## M9: explicit loopback research child lifecycle
 
 `native/macos/FloatdeskLocalService.swift` owns an optional direct child `Process` launched from a trusted local checkout by a Mac-menu Start action. The child receives a tightly specified environment forcing `HOST=127.0.0.1`, `PORT=8789`, no inherited TLS or native-helper settings. Stop/Quit targets only that child, not an arbitrary PID or the separately managed HTTPS/PiP service on port 8788. M9 has no launch daemon, automatic restart, phone-facing API or service-identity guarantee after an app crash. See [M9 limitations](M9-LOCAL-SERVICE-LIFECYCLE.md).
