@@ -26,6 +26,14 @@
 - [ ] Repeat on Android (native PiP may behave differently).
 - [ ] Decide native client approach using **actual** results, not assumptions.
 
+## M13: Astra native Mac companion architecture/security review — approved handoff
+
+- [x] Owner approved preparing a **separate Astra session**; detailed mission, repository context and non-negotiable PiP/consent requirements are recorded in [M13 handoff](M13-ASTRA-HANDOFF.md).
+- [ ] Astra verifies actual current repo, performs prioritized threat model and signed Mac companion/App Sandbox/TCC/XPC architecture ADR with official Apple references.
+- [ ] Astra designs independent per-capability grants/consent and produces bounded tested infrastructure work **without** changing LAN PiP/capture before real-device review.
+- [ ] M13 resulting findings/PR/CI and `docs/M13-ASTRA-REVIEW.md` must be delivered back. **Handoff brief is not an implementation or review.**
+- [ ] Actual MacBook M1/iPhone 16 permission/PiP/device gates remain pending. Opus frontend redesign remains later, not part of M13.
+
 ## M12: owner-approved local code snapshot and distribution gate
 
 - [x] Local-only Mac setup records SHA-256 digest of the selected Node executable plus all current root-level `src/`, `public/` and `package.json` files. Missing, new, changed, symlinked, non-regular or unsafe-mode files cause fail-closed reapproval.
