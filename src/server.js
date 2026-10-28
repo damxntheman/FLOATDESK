@@ -17,6 +17,7 @@ import { FilesGrant } from './files-grant.js';
 import { openMacFolderPicker } from './folder-picker.js';
 import { listSafeMetadata } from './files-policy.js';
 import { probeNativeCompanion } from './native-companion.js';
+import { startNativeFilesBroker } from './native-files-broker.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || '8787');
@@ -45,7 +46,10 @@ const terminalGrants = new WeakMap();
 const filesGrants = new WeakMap();
 const filesRoots = new WeakMap();
 const filesPickers = new WeakMap();
+const filesBrokers = new WeakMap();
 const nativePickerPath = process.env.FLOATDESK_FOLDER_PICKER_BIN || '';
+// M7 takes priority over legacy M5 picker+Node reader when explicitly configured.
+const nativeFilesPath = process.env.FLOATDESK_NATIVE_FILES_BIN || '';
 const nativeAgentPath = process.env.FLOATDESK_AGENT_BIN || '';
 const nativeCompanionPath = process.env.FLOATDESK_COMPANION_BIN || '';
 function appGrantFor(room) {
@@ -92,6 +96,11 @@ function revokeFiles(room, reason = 'Files access is off.') {
   if (job) {
     filesPickers.delete(room);
     job.cancel(); // abandon picker; stale responses cannot reactivate access
+  }
+  const broker = filesBrokers.get(room);
+  if (broker) {
+    filesBrokers.delete(room);
+    broker.cancel(); // close the native process and its owner-selected root FD
   }
   filesRoots.delete(room);
   const grant = filesGrantFor(room);
@@ -402,7 +411,8 @@ wss.on('connection', (ws, req) => {
         }
         const room = entry.record;
         if (!room.host || room.host.readyState !== WebSocket.OPEN || process.platform !== 'darwin' ||
-            !nativePickerPath || !existsSync(nativePickerPath)) {
+            !(nativeFilesPath && existsSync(nativeFilesPath)) &&
+            !(nativePickerPath && existsSync(nativePickerPath))) {
           throw new Error('A connected Mac with a native folder picker is required for Files Mode.');
         }
         filesGrantFor(room).request();
@@ -421,7 +431,9 @@ wss.on('connection', (ws, req) => {
         grant.beginSelection();
         let job;
         try {
-          job = openMacFolderPicker({ binary:nativePickerPath });
+          job = nativeFilesPath
+            ? startNativeFilesBroker({ binary:nativeFilesPath })
+            : openMacFolderPicker({ binary:nativePickerPath });
         } catch {
           revokeFiles(room, 'Unable to open Mac folder picker. Files access is off.');
           throw new Error('Mac folder picker unavailable.');
@@ -437,8 +449,13 @@ wss.on('connection', (ws, req) => {
             return;
           }
           try {
-            grant.approveWithSelection(selection);
-            filesRoots.set(room, selection.root); // never returned to phone
+            if (nativeFilesPath) {
+              grant.approveWithSelection({native:true,label:selection.label});
+              filesBrokers.set(room, job); // the Mac broker owns picker + directory FD
+            } else {
+              grant.approveWithSelection(selection);
+              filesRoots.set(room, selection.root); // legacy M5 opt-in path
+            }
             filesStatus(room, 'active', 'Read-only folder names shared for five minutes.');
             send(room.viewer, { type:'files-root', label:selection.label });
           } catch {
@@ -464,12 +481,26 @@ wss.on('connection', (ws, req) => {
         const room = entry.record;
         const grant = filesGrantFor(room);
         grant.check();
+        const nativeBroker = filesBrokers.get(room);
         const selectedRoot = filesRoots.get(room);
-        if (!selectedRoot) throw new Error('Mac has not selected a folder.');
+        if (!nativeBroker && !selectedRoot) throw new Error('Mac has not selected a folder.');
         try {
           grant.useAction();
-          const result = listSafeMetadata(selectedRoot, data.folder === undefined ? '.' : data.folder);
-          send(ws, { type:'files-list-result', ...result });
+          if (nativeBroker) {
+            const requested = data.folder === undefined ? '.' : data.folder;
+            nativeBroker.list(requested).then(result => {
+              if (filesBrokers.get(room) !== nativeBroker || grant.phase !== 'active' ||
+                  grant.expired() || registry.forClient(ws)?.record !== room) return;
+              send(ws, {type:'files-list-result',...result});
+            }).catch(() => {
+              if (filesBrokers.get(room) === nativeBroker) {
+                revokeFiles(room, 'Native Mac Files request failed; folder access revoked.');
+              }
+            });
+          } else {
+            const result = listSafeMetadata(selectedRoot, data.folder === undefined ? '.' : data.folder);
+            send(ws, { type:'files-list-result', ...result });
+          }
         } catch {
           // Never send internal Mac paths, OS error strings or file contents.
           throw new Error('Folder unavailable, invalid, or requested too quickly.');
