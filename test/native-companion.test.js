@@ -79,7 +79,7 @@ test('native companion refuses unsupported hosts, relative paths and non-opt-in 
 test('no response, oversized output, malformed JSON or process crash fail closed', async () => {
   for(const [body,settings] of [
     ['not json\n',{}],
-    [JSON.stringify(ack({capabilities:{...DECLARED_CAPABILITIES,input:true}})+'\n',{}],
+    [JSON.stringify(ack({capabilities:{...DECLARED_CAPABILITIES,input:true}}))+'\n',{}],
     ['x'.repeat(2300),{}],
     [JSON.stringify(ack())+'\nInjected output',{}],
     ['',{signal:'error'}],

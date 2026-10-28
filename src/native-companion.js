@@ -76,7 +76,8 @@ export function probeNativeCompanion({
       settle(new Error('Native companion handshake failed.'));
     }
     timer = setTimeout(failure, Math.max(1,Math.min(timeoutMs,10000)));
-    timer.unref?.();
+    // Keep the timeout referenced until the handshake settles; an unref'd
+    // test-only subprocess may otherwise leave an unresolved probe promise.
     child.on('error',failure);
     child.on('exit',() => {
       if (!finished) failure();
@@ -104,8 +105,10 @@ export function probeNativeCompanion({
     const frame = JSON.stringify({
       version:PROTOCOL_VERSION,type:'hello',requestId
     }) + '\n';
-    if (!child.stdin.writable || child.stdin.writableLength > 0 ||
-        !child.stdin.write(frame)) {
+    try {
+      if (!child.stdin.writable || child.stdin.writableLength > 0 ||
+          !child.stdin.write(frame)) failure();
+    } catch {
       failure();
     }
   });
