@@ -110,11 +110,11 @@ test('iPhone Mode reveals Mac apps only after explicit approval and launches by 
   await receive({type:'files-list-result',folder:'',entries:[
     {name:'Music',kind:'folder'},
     {name:'private.txt',kind:'file'},
-    {name:'<script>alert(1)</script>',kind:'file'}
+    {name:'<img onerror=alert(1)>',kind:'file'}
   ],truncated:false});
   assert.equal(find('filesGrid').children.length,3);
   assert.equal(find('filesGrid').children[1].disabled,true,'file content is not accessible');
-  assert.equal(find('filesGrid').children[2].children[1].textContent,'<script>alert(1)</script>');
+  assert.equal(find('filesGrid').children[2].children[1].textContent,'<img onerror=alert(1)>');
   find('filesGrid').children[0].click();
   assert.deepEqual(sent.at(-1),{type:'files-list',folder:'Music'});
   await receive({type:'files-list-result',folder:'Music',entries:[{name:'mix.flp',kind:'file'}],truncated:false});
