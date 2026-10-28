@@ -39,6 +39,11 @@
           <p class="hint">Experimental read-only Mac system diagnostics. This does not permit running shell commands, scripts or reading files. Separate approval lasts 3 minutes.</p>
           <div class="actions"><button id="approveTerminal" disabled>Allow Terminal Preview (3 min)</button><button id="revokeTerminal" disabled>Revoke Terminal Preview</button></div>
         </div>
+        <div class="control-panel">
+          <h3>iPhone Mode · Files (read-only)</h3>
+          <p class="hint">A paired phone may request to browse file and folder names. You choose the specific folder using a native Mac dialog. No file contents, transfers, edits or deletes.</p>
+          <div class="actions"><button id="chooseFiles" disabled>Choose folder on Mac</button><button id="revokeFiles" disabled>Revoke Files access</button></div>
+        </div>
         <p class="hint">Stop sharing turns off desktop video but keeps your phone paired. Share screen always asks for fresh browser permission. End session disconnects both devices. Capture requires HTTPS or localhost.</p>
       </article>
       <article class="panel" id="viewerPanel">
@@ -106,6 +111,26 @@
             <button id="runTerminalCommand" type="submit" disabled>Run</button>
           </div>
         </form>
+      </section>
+      <section id="filesPanel" class="mobile-files" hidden aria-label="FLOATDESK read-only Mac Files">
+        <div class="mobile-files-head">
+          <button id="closeFiles" type="button">‹ Apps</button>
+          <div><strong>Files</strong><span>MAC FOLDERS · READ-ONLY</span></div>
+          <span class="files-glyph" aria-hidden="true">▣</span>
+        </div>
+        <p class="hint">Browse names inside a folder chosen on the Mac. Files cannot be opened, copied, renamed or deleted in this preview.</p>
+        <div class="iphone-mode-actions">
+          <button id="requestFiles" class="primary" disabled>Request folder access</button>
+          <button id="releaseFiles" disabled>Stop Files access</button>
+        </div>
+        <p id="filesStatus" class="hint" role="status" aria-live="polite">Mac owner must choose a folder.</p>
+        <div class="files-location">
+          <button id="filesUp" disabled type="button" aria-label="Go to parent folder">‹ Back</button>
+          <div><span id="filesRootLabel">Selected folder</span><strong id="filesFolderPath">/</strong></div>
+        </div>
+        <div id="filesGrid" class="files-grid" aria-live="polite"><p class="hint">Folder contents will appear after Mac approval.</p></div>
+        <p id="filesLimitNote" class="hint" hidden>Showing the first 100 items only.</p>
+        <button id="openFinderDesktop" type="button" disabled>Open Finder on Mac (desktop fallback)</button>
       </section>
     </section>
     <section class="monitor panel" id="desktopMonitor">
