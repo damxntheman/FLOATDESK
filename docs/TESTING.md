@@ -144,3 +144,7 @@ macOS CI compiles the new Swift service manager and proves loopback Node start, 
 ## M10 owner process death and orphan prevention — no hardware validation
 
 GitHub CI now tests Node managed-host wrapper's refusal of LAN/TLS escalation, exiting on owner pipe EOF, and an actual Swift fixture abruptly exiting without a normal Stop, then checks loopback port 8789 closes. Real M1 Mac menu application shutdown, OS session termination, background PiP and crash modes remain physically unverified by owner choice. See [M10 checklist](M10-PARENT-BOUND-RECOVERY.md).
+
+## M11 configuration/locking — deferred physical GUI acceptance
+
+macOS CI compiles the AppKit menu, native settings panel code and owner-specific lock. A headless Swift test checks atomic local UserDefaults configuration/clear and lock exclusion; a separate cross-process CI scenario acquires a lock, rejects another process and confirms release after owner exit. The older M9–M10 startup/EOF crash tests still apply. **No physical Mac picker interaction, signed binary trust, actual iPhone PiP or system-permission behavior has been checked.** See [M11 checklist](M11-MAC-SETUP-LOCK.md).

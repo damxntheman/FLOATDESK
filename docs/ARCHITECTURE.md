@@ -1,5 +1,11 @@
 # Architecture and non-goals
 
+## M11: local Mac Host setup & duplicate lock
+
+`FloatdeskHostSettings.swift` stores exactly two owner-selected, *non-secret* absolute Mac paths in local macOS UserDefaults, only after both valid selections complete; a cancelled dialog leaves previous settings unchanged. The menu's Start action reads those saved paths, so the user need not launch the menu app through a Terminal environment. This is still a locally trusted research checkout, **not** binary signature verification.
+
+`FloatdeskInstanceLock.swift` holds a nonblocking per-user advisory `flock` on an owner-owned regular file inside user Application Support. This rejects another menu instance while the first owns a managed 8789 child. `FloatdeskLocalService.swift` retains the lock through Stop until its child exits. Lock release on Mac app death relies on OS file descriptor closure; M10's parent-owned stdin EOF separately closes the Node child. The 8788 HTTPS/PiP service is independent. See [M11 notes](M11-MAC-SETUP-LOCK.md).
+
 ## M10: parent lifetime-bound loopback child
 
 `FloatdeskLocalService.swift` now launches `src/managed-host.js` rather than `src/server.js` directly. The Mac menu keeps the write side of an anonymous pipe as a parent-ownership signal, with the child reading stdin. If the owner exits abnormally, the OS closes its FD and the Node wrapper exits on EOF. Normal Stop/Quit closes the pipe and targets the owned `Process` for termination. The wrapper refuses other hosts, ports and TLS variables before importing the unchanged browser research server. This is **only** for Mac loopback port 8789; manually run HTTPS port 8788 with Safari PiP remains independent. This is not an OS daemon or a persistent crash recovery mechanism; see [M10 scope](M10-PARENT-BOUND-RECOVERY.md).

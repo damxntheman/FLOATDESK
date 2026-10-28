@@ -67,6 +67,12 @@ A newly built menu-bar **Start / Stop / Open local dashboard** flow manages only
 
 The Mac menu's **local-only research server** on `127.0.0.1:8789` now uses a parent-owned stdin pipe. The child is launched using `src/managed-host.js`; when the Mac app closes its pipe or dies, the wrapper detects EOF and exits, freeing its port. It also refuses altered LAN/TLS configurations. CI tests include a deliberately crashed Swift owner process and loopback-port cleanup. This does **not** touch the independent trusted-LAN HTTPS/PiP server on **8788** or enable automatic startup. See [M10 boundaries](docs/M10-PARENT-BOUND-RECOVERY.md).
 
+## M11: configure Mac Host without Terminal
+
+The macOS menu-bar research app now includes **Configure local dashboard…**. A Mac owner selects their trusted FLOATDESK repository folder and installed Node executable with native macOS dialogs. Only those two local paths are stored in Mac `UserDefaults`; no pairing code, certificate, IP, screenshot, file content or authentication secret is persisted. Canceling the second selection keeps the previous configuration intact. **Clear local configuration** deletes those settings without killing a separately running service.
+
+An advisory single-owner file lock guards the *Mac-only* managed dashboard on `127.0.0.1:8789` against duplicate launch across menu instances; the lock is held until the owned service actually exits. This **does not start the service automatically** or change the existing trusted-LAN HTTPS port 8788 used for **floating iPhone PiP**. See [M11 scope](docs/M11-MAC-SETUP-LOCK.md).
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.

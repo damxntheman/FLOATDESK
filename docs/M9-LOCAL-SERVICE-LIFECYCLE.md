@@ -28,3 +28,7 @@ This is an **unsigned/ad hoc signed research app**, not a production supervisor.
 ## M10 improvement
 
 The local 8789 child is now bound to its parent via a stdin pipe, so ordinary closing and abnormal owner process exit should cause the child to shut down instead of staying orphaned. This does **not** make it a robust production supervisor or replace the HTTPS PiP server. See [M10](M10-PARENT-BOUND-RECOVERY.md).
+
+## M11 setup improvement
+
+Instead of requiring launch-time Terminal environment variables, the Mac menu now offers a local **Configure local dashboard…** flow for selecting the trusted repository and Node binary. It stores only those Mac-local paths, and an owner-specific file lock prevents cooperating duplicate menu processes from starting the same 8789 research service. No phone access or automatic launch is added. See [M11](M11-MAC-SETUP-LOCK.md).
