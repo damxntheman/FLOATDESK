@@ -9,6 +9,12 @@
 
 Most remote desktop clients prioritize a full-screen desktop shrunk onto a phone. FLOATDESK's proposed interaction is: watch the computer while using another phone app, tap the floating preview to return, then control the computer through direct-touch gestures without repeatedly logging in.
 
+## Non-negotiable: Picture-in-Picture (PiP) remains core
+
+**PiP must not be removed as FLOATDESK evolves into iPhone Mode.** Users need a live, floating, view-only Mac video window while using other iPhone apps, with a deliberate way to return to Desktop Mode or iPhone Mode without unnecessary re-pairing. The app's phone-native Files, Terminal and app launcher experiences complement the floating live viewer rather than replacing it. Capture always requires Mac-side permission; returning from PiP must not silently authorize touch control.
+
+The existing Safari PiP feasibility was **user-reported on iPhone 16**. Native iOS PiP behavior, media suspension, return transitions and long-running reliability require separate physical tests, intentionally postponed by the owner. **Do not claim PiP is interactive inside iOS's floating window.** Keep the existing working PiP path until a native replacement is verified.
+
 ## What works in the prototype
 
 - Minimal Node.js signaling service; no cloud account.
@@ -62,13 +68,16 @@ A browser refresh of the host **ends screen capture**. This is an operating-syst
 The server intentionally defaults to loopback-only. To bind to your LAN, you **must configure HTTPS** with a certificate trusted by **both** your Mac and phone. Self-signed/untrusted certificates may prevent mobile WebSocket and WebRTC behaviors. For example, with `mkcert`, generate a development certificate containing the actual LAN address, and install/trust the development CA on the test phone only if you understand the security implications:
 
 ```sh
-# Example: replace 192.168.1.20 with your computer's real LAN address.
+# Enter your actual LAN address locally; do not commit it to GitHub.
+printf 'Mac LAN IPv4 address: '; read -r MAC_LAN_IP
 mkcert -install
-mkcert -cert-file certs/lan.pem -key-file certs/lan-key.pem localhost 127.0.0.1 192.168.1.20
+mkcert -cert-file certs/lan.pem -key-file certs/lan-key.pem localhost 127.0.0.1 "$MAC_LAN_IP"
 HOST=0.0.0.0 TLS_CERT_FILE=certs/lan.pem TLS_KEY_FILE=certs/lan-key.pem npm start
 ```
 
-Then visit `https://192.168.1.20:8787` from the phone, and `https://localhost:8787` on the computer. Certs are ignored by Git; **never commit the CA private key or TLS keys**. Test only on a trusted LAN. No STUN/TURN servers are configured; peers may fail on isolated guest Wi-Fi, carrier networks, or restrictive firewalls.
+Then visit `https://<YOUR-MAC-LAN-IP>:8787` from the phone, and `https://localhost:8787` on the computer. Certs are ignored by Git; **never commit the CA private key or TLS keys**. Test only on a trusted LAN. No STUN/TURN servers are configured; peers may fail on isolated guest Wi-Fi, carrier networks, or restrictive firewalls.
+
+**Privacy note:** The LAN IP previously shown here was only an illustrative example, not a user-specific address. Avoid committing personal LAN/public IPs, pairing codes, session tokens, CA private keys, TLS private keys, or logs revealing sensitive network information. Git history retains old generic examples; removing current examples is documentation hygiene, not a security incident.
 
 **Do not port-forward or expose this prototype publicly.** It has no production hardening, user accounts, end-to-end authenticated identity verification, safe input-control permission model, or external threat mitigation.
 

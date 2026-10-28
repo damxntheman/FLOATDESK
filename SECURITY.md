@@ -39,3 +39,7 @@ The Files Mode directory helper is **not reachable from signaling**. It contains
 M5 is explicitly disabled without an opt-in **native Mac folder picker binary**. The paired phone requests a folder scope but cannot choose or supply the path; the Mac owner must select a specific folder through a local `NSOpenPanel` and may revoke instantly. Only names and folder/file types (not contents or full paths) are transmitted, and the scope expires after five minutes. `src/files-policy.js` rejects parent traversal, hidden segments and symbolic link paths; listings are bounded. 
 
 The selection helper is separate from Node; it does **not** transfer App Sandbox bookmarks or guarantee Node's access to TCC-protected folders. Current JS path containment is not hardened against active filesystem race/symlink swaps. Do not browse sensitive folders, use an untrusted phone, or expose this prototype outside a trusted LAN. See [M5 limitations](docs/M5-FILES-MODE.md).
+
+## Privacy of local network configuration
+
+A private IPv4 address (for example, a generic `192.168.x.x` home-network address) is not directly internet-routable and is not an authentication secret. Nevertheless, do not commit actual personal LAN or public IP addresses, local device names tied to a person, session codes, pairing/resume tokens, root CA private keys, TLS keys or sensitive connection logs to the public repository. Use placeholders in public instructions. **Never port-forward this research prototype or use it on an untrusted network.**
