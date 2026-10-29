@@ -2,6 +2,10 @@
 
 **FLOATDESK v0.1 is an experimental local-only research preview, not suitable for internet exposure or sensitive remote administration.**
 
+## M14 detached authorization research
+
+[M14 implementation and threat model](docs/M14-TERRA-IMPLEMENTATION.md) describes an isolated capability ledger and a proposed native owner/viewer authentication direction. The model is not connected to the server, helpers, network, browser or actual Mac permissions. Its identity labels are trusted caller assertions, not authentication, and it cannot protect live operations from a compromised Node process. The existing M13 limitations below remain in force. No new privileges, listener, PTY, file writes or native PiP replacement are enabled.
+
 ## Current M13 security status
 
 [M13 review](docs/M13-ASTRA-REVIEW.md) records the current threat model, source findings, repairs and production blockers. Loopback plus a host-role token does **not** authenticate the Mac owner. Node and its dependencies remain trusted, native helpers have no independent grant authority, and the local source hash does not cover installed dependencies or prove signed identity. Do not distribute this as a secure companion.
