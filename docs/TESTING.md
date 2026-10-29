@@ -1,5 +1,7 @@
 # Device-validation worksheet
 
+**M13:** [automated evidence and outstanding hardware matrix](M13-ASTRA-REVIEW.md). M13 adds deterministic expiry/resume teardown, native Files Unicode/repeated-listing and release-parser regression checks. Hardware tests remain deferred. The milestone entries below retain historical reports; broad older statements such as “input is not implemented” do not describe current source.
+
 Document **observed behavior, not intentions**. Never report a pass for an iPhone or Android phone that was not physically tested.
 
 ## Mac browser smoke test — user-reported evidence (2026-10-26)

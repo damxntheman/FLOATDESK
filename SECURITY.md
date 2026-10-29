@@ -2,6 +2,14 @@
 
 **FLOATDESK v0.1 is an experimental local-only research preview, not suitable for internet exposure or sensitive remote administration.**
 
+## Current M13 security status
+
+[M13 review](docs/M13-ASTRA-REVIEW.md) records the current threat model, source findings, repairs and production blockers. Loopback plus a host-role token does **not** authenticate the Mac owner. Node and its dependencies remain trusted, native helpers have no independent grant authority, and the local source hash does not cover installed dependencies or prove signed identity. Do not distribute this as a secure companion.
+
+M13 centralizes session expiry/stop teardown, revokes grants on every authenticated resume, repairs native Files framing/directory offsets, and tightens release-check parsing. It adds no permissions, capture backend, Terminal commands or file writes. Existing PiP remains view-only. Automated checks do not establish physical TCC, signed-helper, sandbox or notarization acceptance.
+
+The milestone sections below are historical: M5/M7 supersede M4's inaccessible Files groundwork, and M9–M12 supersede M8's dashboard-only shell. Current optional click input exists under a separate grant; a viewer without that grant remains view-only. No current control surface is independently authenticated as a human owner approval.
+
 Report vulnerabilities privately through GitHub's private vulnerability reporting feature if enabled, or contact the repository maintainer through a private channel. Do not publish live exploits, tokens, recordings, or personally identifying screen contents in issues.
 
 ## Current protections

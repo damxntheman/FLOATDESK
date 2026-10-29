@@ -1,5 +1,9 @@
 # Architecture and non-goals
 
+## M13: reviewed boundaries and proposed distribution architecture
+
+Read [M13 architecture/security review](M13-ASTRA-REVIEW.md) for the trust diagram, consent matrix, Apple documentation, concrete repairs and staged native-owner/XPC recommendation. The existing research components remain in place; the proposed production architecture is not implemented or approved for release. Older milestone descriptions below are historical snapshots. Ports 8788 and 8789 and all three product experiences remain distinct.
+
 ## M12: local source approval seal, not a signing trust root
 
 `FloatdeskSourceSeal.swift` hashes the Mac-owner-selected Node executable, `package.json`, all current flat files in `src/` and `public/` with bounded streaming SHA-256. The owner-approved digest is saved in local `UserDefaults` alongside the two non-secret paths. On Start, the Mac Host first obtains its M11 instance lock and compares the current snapshot to the saved approval, then launches only the separately managed loopback **8789** research process. Changed/new/missing/symlinked sources are refused until explicit Mac reconfiguration. The existing trusted-LAN HTTPS **8788**, PiP and iPhone application workflows are not touched.

@@ -23,12 +23,25 @@ if ! codesign --verify --deep --strict --verbose=2 "$APP" >/dev/null 2>&1; then
   exit 3
 fi
 DETAILS="$(codesign -dv --verbose=4 "$APP" 2>&1)"
-if [[ "$DETAILS" != *"Authority=Developer ID Application"* ||
-      "$DETAILS" != *"TeamIdentifier=$TEAM"* ]]; then
+HAS_AUTHORITY=0
+HAS_TEAM=0
+HAS_RUNTIME=0
+# Read actual fields, never incidental text in an executable path or label.
+# CS_RUNTIME is 0x10000; other CodeDirectory flags may be present as well.
+FLAGS_PATTERN='^CodeDirectory[[:space:]].*[[:space:]]flags=0x([[:xdigit:]]{1,8})\([^)]*\)([[:space:]]|$)'
+while IFS= read -r LINE; do
+  if [[ "$LINE" == "Authority=Developer ID Application: "* ]]; then HAS_AUTHORITY=1; fi
+  if [[ "$LINE" == "TeamIdentifier=$TEAM" ]]; then HAS_TEAM=1; fi
+  if [[ "$LINE" =~ $FLAGS_PATTERN ]]; then
+    FLAGS=$((16#${BASH_REMATCH[1]}))
+    if (( (FLAGS & 0x10000) != 0 )); then HAS_RUNTIME=1; fi
+  fi
+done <<< "$DETAILS"
+if [[ "$HAS_AUTHORITY" != 1 || "$HAS_TEAM" != 1 ]]; then
   echo "Release blocked: not signed by the expected Developer ID Application team." >&2
   exit 3
 fi
-if [[ "$DETAILS" != *"runtime"* ]]; then
+if [[ "$HAS_RUNTIME" != 1 ]]; then
   echo "Release blocked: no hardened runtime detected." >&2
   exit 3
 fi

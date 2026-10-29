@@ -37,7 +37,7 @@ const routes = new Map([
   ['/touch-mapping.js', ['touch-mapping.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']]
 ]);
-const registry = new SessionRegistry();
+const registry = new SessionRegistry(undefined, { onRemove: disposeSession });
 const attempts = new Map();
 const recoveryThrottle = new RecoveryThrottle();
 const controlGrants = new WeakMap();
@@ -119,17 +119,27 @@ function controlStatus(room, state, message = '') {
 }
 function revokeControl(room, reason = 'Touch control is off.') {
   if (!room) return;
+  const grant = grantFor(room);
+  const previously = grant.phase;
+  grant.revoke(); // Authorization ends even if native pipe/signal cleanup fails.
   const child = controlAgents.get(room);
   if (child) {
     controlAgents.delete(room);
     // Stop accepting native events immediately. Child exit is not an authorization boundary.
-    child.stdin.end();
-    if (!child.killed) child.kill();
+    try { child.stdin.end(); } catch {}
+    try { if (!child.killed) child.kill(); } catch {}
   }
-  const grant = grantFor(room);
-  const previously = grant.phase;
-  grant.revoke();
   if (previously !== 'off') controlStatus(room, 'off', reason);
+}
+function disposeSession(room, reason) {
+  const message = reason === 'expired' ? 'Session expired.' : 'Session ended.';
+  revokeControl(room, message);
+  revokeAppAccess(room, message);
+  revokeTerminal(room, message);
+  revokeFiles(room, message);
+  room.captureSurface = null;
+  send(room.host, { type: 'session-ended' });
+  send(room.viewer, { type: 'session-ended' });
 }
 function isLocalPeer(ip) {
   return ip === '::1' || ip === '127.0.0.1' || ip.startsWith('::ffff:127.');
@@ -247,12 +257,13 @@ wss.on('connection', (ws, req) => {
       } else if (data.type === 'resume') {
         // Resume tokens carry 256 bits of randomness. Avoid throttling valid rapid resumes.
         const { record, previous } = registry.resume(ws, data.code, data.role, data.token);
+        // Socket replacement is an authorization boundary even if the old
+        // socket is CLOSING (its later close event has already been detached).
+        revokeControl(record, 'Touch control revoked when a device resumed its session.');
+        revokeAppAccess(record, 'Mac app access revoked when a device resumed its session.');
+        revokeTerminal(record, 'Terminal Preview disabled when device resumed.');
+        revokeFiles(record, 'Files access revoked when device resumed.');
         if (previous && previous !== ws && previous.readyState === WebSocket.OPEN) {
-          // An old socket is displaced. Never transfer an input grant across sockets.
-          revokeControl(record, 'Touch control revoked when a device resumed its session.');
-          revokeAppAccess(record, 'Mac app access revoked when a device resumed its session.');
-          revokeTerminal(record, 'Terminal Preview disabled when device resumed.');
-          revokeFiles(record, 'Files access revoked when device resumed.');
           previous.close(4001, 'Session moved');
         }
         send(ws, { type: 'resumed', role: data.role, code: record.code, expiresAt: record.expiresAt });
@@ -587,17 +598,7 @@ wss.on('connection', (ws, req) => {
         send(hostSocket, { type: 'viewer-video-recovery-requested' });
         send(ws, { type: 'recovery-request-accepted' });
       } else if (data.type === 'stop') {
-        const entry = registry.forClient(ws);
-        if (entry) {
-          revokeControl(entry.record, 'Session ended.');
-          revokeAppAccess(entry.record, 'Session ended.');
-          revokeTerminal(entry.record, 'Session ended.');
-          revokeFiles(entry.record, 'Session ended.');
-        }
-        const peer = registry.peer(ws);
         registry.stop(ws);
-        send(peer, { type: 'session-ended' });
-        send(ws, { type: 'session-ended' });
       } else {
         throw new Error('Unknown request.');
       }
@@ -620,22 +621,14 @@ wss.on('connection', (ws, req) => {
 
 const housekeeping = setInterval(() => {
   const now = Date.now();
+  registry.prune(); // same synchronous disposal boundary as request-time expiry
   for (const room of registry.rooms.values()) {
     const grant = grantFor(room);
     if (grant.expired()) revokeControl(room, 'Touch control approval expired.');
     if (appGrantFor(room).expired()) revokeAppAccess(room, 'Mac app access expired. Request permission again.');
     if (terminalGrantFor(room).expired()) revokeTerminal(room, 'Terminal Preview expired. Request fresh approval.');
     if (filesGrantFor(room).expired()) revokeFiles(room, 'Files Mode permission expired. Request again.');
-    if (now >= room.expiresAt) {
-      revokeControl(room, 'Session expired.');
-      revokeAppAccess(room, 'Session expired.');
-      revokeTerminal(room, 'Session expired.');
-      revokeFiles(room, 'Session expired.');
-      send(room.host, { type: 'session-ended' });
-      send(room.viewer, { type: 'session-ended' });
-    }
   }
-  registry.prune();
   for (const [ip, entry] of attempts) if (now > entry.until) attempts.delete(ip);
 }, 1000);
 housekeeping.unref();

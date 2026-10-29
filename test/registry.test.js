@@ -62,3 +62,53 @@ test('old sockets cannot disconnect a resumed session', () => {
   registry.detach(host);
   assert.equal(registry.forClient(newHost).role, 'host');
 });
+
+test('every expiry entry point synchronously disposes a room exactly once', async () => {
+  for (const operation of ['prune', 'create', 'join', 'resume', 'forClient', 'peer']) {
+    let now = 0;
+    const disposed = [];
+    const registry = new SessionRegistry(() => now, {
+      onRemove(record, reason) {
+        assert.equal(registry.rooms.get(record.code), record, 'cleanup retains room context');
+        disposed.push({ record, reason });
+      }
+    });
+    const host = {}, viewer = {};
+    const info = registry.create(host);
+    registry.join(viewer, info.code);
+    const room = registry.forClient(host).record;
+    now = info.expiresAt;
+    // An asynchronous native completion can be the first expiry observer too.
+    await Promise.resolve();
+    if (operation === 'join') assert.throws(() => registry.join({}, info.code), /expired/);
+    else if (operation === 'resume') assert.throws(() => registry.resume({}, info.code, 'host', info.token), /unavailable/);
+    else registry[operation](host);
+    assert.deepEqual(disposed, [{ record: room, reason: 'expired' }], operation);
+    registry.remove(room);
+    registry.prune();
+    assert.equal(disposed.length, 1, 'duplicate removal never re-runs cleanup');
+    assert.equal(registry.forClient(viewer), null);
+  }
+});
+
+test('host stop and explicit removal use the same disposal boundary', () => {
+  const disposed = [];
+  const registry = new SessionRegistry(() => 0, {
+    onRemove: (record, reason) => disposed.push({ record, reason })
+  });
+  const host = {}, viewer = {};
+  registry.create(host);
+  const room = registry.forClient(host).record;
+  registry.join(viewer, room.code);
+  assert.throws(() => registry.stop(viewer), /Only the host/);
+  assert.equal(disposed.length, 0);
+  registry.stop(host);
+  registry.remove(room);
+  assert.deepEqual(disposed, [{ record: room, reason: 'ended' }]);
+  assert.equal(registry.forClient(host), null);
+  assert.equal(registry.forClient(viewer), null);
+  registry.create(host);
+  const next = registry.forClient(host).record;
+  registry.remove(next);
+  assert.equal(disposed.length, 2);
+});

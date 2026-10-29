@@ -21,8 +21,10 @@ function tokenMatches(expected, actual) {
 }
 
 export class SessionRegistry {
-  constructor(clock = () => Date.now()) {
+  constructor(clock = () => Date.now(), { onRemove = () => {} } = {}) {
     this.clock = clock;
+    this.onRemove = onRemove;
+    this.removing = new WeakSet();
     this.rooms = new Map();
     this.clients = new Map();
   }
@@ -30,7 +32,7 @@ export class SessionRegistry {
   prune() {
     const now = this.clock();
     for (const record of this.rooms.values()) {
-      if (now >= record.expiresAt) this.remove(record);
+      if (now >= record.expiresAt) this.remove(record, 'expired');
     }
   }
 
@@ -104,9 +106,18 @@ export class SessionRegistry {
     return entry.record;
   }
 
-  remove(record) {
-    if (record.host) this.clients.delete(record.host);
-    if (record.viewer) this.clients.delete(record.viewer);
-    this.rooms.delete(record.code);
+  remove(record, reason = 'ended') {
+    if (this.rooms.get(record.code) !== record || this.removing.has(record)) return;
+    this.removing.add(record);
+    try {
+      // Expiry can be observed by ANY lookup, including async native replies.
+      // Dispose grants/processes and notify peers before losing room context.
+      this.onRemove(record, reason);
+    } finally {
+      if (record.host) this.clients.delete(record.host);
+      if (record.viewer) this.clients.delete(record.viewer);
+      this.rooms.delete(record.code);
+      this.removing.delete(record);
+    }
   }
 }
