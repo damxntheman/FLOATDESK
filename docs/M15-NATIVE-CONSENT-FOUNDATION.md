@@ -23,7 +23,7 @@ Continue FLOATDESK without requiring access to Astra. Build as much as possible 
 3. The method `approveFromLocalUI` is a mock of future on-Mac approval. It requires an **exact matching prior presentation** that is still pending and current. It is **not wired to AppKit** or an authenticated owner: no claim of actual approval security is made.
 4. The resulting in-memory grant is tied to the current instance generation, session/viewer, capability, exact opaque scope, requested operations, expiry and one-way operation sequence. View/watch can NEVER authorize click; Files/list can NEVER authorize write.
 5. `authorize` creates a one-use local receipt; `complete` rechecks revocation, session and deadline before a hypothetical separately guarded effect/result. No effect is executed. The core cannot undo effects already dispatched to other processes.
-6. Scope revoke invalidates pending approvals and outstanding receipts; disconnect/stop invalidate grants; resume never restores permission. A new instance has a fresh generation; time rollback poisons the model. Stores are intentionally bounded.
+6. Scope revoke invalidates pending approvals and outstanding receipts; disconnect/stop invalidate grants; resume never restores permission. A new instance has a fresh generation; time rollback poisons the model. Stores are intentionally bounded; expired pending prompts and receipts are removed when a subsequent request/action checks them, without reviving authorization.
 
 Unlike the JS research model, this adds a **Swift implementation and macOS compiler/runtime checks** that can inform a future native authority without trusting JS or enabling permissions. It is deliberately **not linked into the existing menu app**.
 
@@ -69,7 +69,7 @@ Ports: independently started trusted-LAN HTTPS **8788** (Safari PiP, Desktop/iPh
 
 ## Automated test evidence
 
-The new `native-consent-research-macos` GitHub CI job compiles native Swift core plus `FloatdeskNativeConsentSmoke.swift` and runs 13 offline adversarial scenarios: exact displayed approval, operation/scope confusion, sequence replay, exact expiry boundary, pending/stale revocation, unrelated-scope continuation, pre-approval revocation, late prompt, disconnect/resume, stop, service generation, PiP not click, monotonic rollback/resource limit.
+The new `native-consent-research-macos` GitHub CI job compiles native Swift core plus `FloatdeskNativeConsentSmoke.swift` and runs 15 offline adversarial scenarios: exact displayed approval, operation/scope confusion, sequence replay, exact expiry boundary, pending/stale revocation, unrelated-scope continuation, pre-approval revocation, late prompt, disconnect/resume, stop, service generation, PiP not click, monotonic rollback/resource limit, expired-prompt reclamation and expired-receipt reclamation.
 
 A second CI step verifies the model is absent from the live Mac menu, Node/HTML/JS and native helper source paths. All existing Node/macOS jobs must also pass; **no physical tests are claimed**. Record the current CI run and commit in the PR before any merge.
 

@@ -87,7 +87,7 @@ The owner has approved a **separate Astra review** of the production Mac compani
 
 ## M15: independently enforceable native consent — research foundation
 
-A new **detached macOS Swift consent state machine** (`native/macos/FloatdeskNativeConsentResearch.swift`) models native owner-UI approval, session-bound capabilities, TTL, scope revocation, replay protection and stale-completion checks. A separate macOS CI job compiles and runs 13 offline adversarial scenarios. **This is not yet genuine Mac-owner or iPhone-device authentication**: the approved UI is a simulated call in a test fixture; it is not connected to the browser, Node, native helpers, WebRTC or any system permission. See [M15 architecture and gates](docs/M15-NATIVE-CONSENT-FOUNDATION.md).
+A new **detached macOS Swift consent state machine** (`native/macos/FloatdeskNativeConsentResearch.swift`) models native owner-UI approval, session-bound capabilities, TTL, scope revocation, replay protection and stale-completion checks. A separate macOS CI job compiles and runs 15 offline adversarial scenarios. **This is not yet genuine Mac-owner or iPhone-device authentication**: the approved UI is a simulated call in a test fixture; it is not connected to the browser, Node, native helpers, WebRTC or any system permission. See [M15 architecture and gates](docs/M15-NATIVE-CONSENT-FOUNDATION.md).
 
 **Floating Safari PiP remains view-only and unchanged**, with independent Desktop Mode and iPhone Mode. Production Mac signing, device enrollment, secure XPC peer identity, TCC and real-device verification are still required before any native grant can govern a privileged action.
 

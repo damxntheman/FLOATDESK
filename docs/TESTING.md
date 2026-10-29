@@ -157,4 +157,4 @@ GitHub macOS CI now hashes the selected Node executable and checked-out app code
 
 ## M15 native consent model — CI only
 
-The new macOS Swift CI job builds `FloatdeskNativeConsentResearch.swift` with a dedicated headless fixture and exercises 13 authorization/revocation/reconnect/expiry cases. Another CI guard checks the core is absent from the live server, browser and existing native Mac helpers. **This does not exercise actual AppKit consent, enrolled phone identity, code signatures, XPC, TCC, privileged input, Files access, or Safari PiP on real devices.** See [M15 gates](M15-NATIVE-CONSENT-FOUNDATION.md).
+The new macOS Swift CI job builds `FloatdeskNativeConsentResearch.swift` with a dedicated headless fixture and exercises 15 authorization/revocation/reconnect/expiry cases. Another CI guard checks the core is absent from the live server, browser and existing native Mac helpers. **This does not exercise actual AppKit consent, enrolled phone identity, code signatures, XPC, TCC, privileged input, Files access, or Safari PiP on real devices.** See [M15 gates](M15-NATIVE-CONSENT-FOUNDATION.md).
