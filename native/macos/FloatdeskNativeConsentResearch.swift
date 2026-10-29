@@ -158,6 +158,9 @@ final class FloatdeskNativeConsentResearch {
                       opaqueScope: String, operations: Set<Operation>,
                       ttl: UInt64) throws -> Presentation {
         let time = try now()
+        // Expired unapproved prompts cannot consume the bounded queue
+        // forever. Removing them never grants or refreshes an approval.
+        requests = requests.filter { $0.value.approvalDeadline > time }
         let session = try active(sessionID)
         guard validLabel(opaqueScope),
               !operations.isEmpty,
@@ -292,6 +295,12 @@ final class FloatdeskNativeConsentResearch {
     // native helper command, screen, file listing or mouse event is dispatched.
     func authorize(_ action: Action) throws -> Receipt {
         let time = try now()
+        // Expired/revoked work is never completable and must not hold
+        // receipt capacity indefinitely after a client disappears.
+        receipts = receipts.filter {
+            guard let g = grants[$0.value] else { return false }
+            return g.active && time < g.expiry
+        }
         guard action.grant.generation == generation,
               receipts.count < 256 else { throw Failure.denied }
         var grant = try check(action.grant.id, at: time)

@@ -54,7 +54,7 @@ enum FloatdeskNativeConsentSmoke {
     static func main() {
         do {
             try run()
-            print("M15 native consent core: 13 offline scenarios passed")
+            print("M15 native consent core: 15 offline scenarios passed")
         } catch {
             fputs("M15 native consent core failed\n",stderr)
             exit(2)
@@ -237,6 +237,54 @@ enum FloatdeskNativeConsentSmoke {
                     capability:.files,opaqueScope:"overflow",
                     operations:[.list],ttl:1000)
             }
+        }
+
+        // 14: timed-out, never-approved prompts release capacity without
+        // reviving permission or allowing delayed local UI callbacks.
+        do {
+            let c=TestClock()
+            let core=FloatdeskNativeConsentResearch(clock:{c.milliseconds})
+            let session=try core.startSession(viewerLabel:"fixture_viewer")
+            var first:FloatdeskNativeConsentResearch.Presentation?
+            for i in 0..<128 {
+                let p=try core.beginRequest(sessionID:session,capability:.files,
+                    opaqueScope:"root_\(i)",operations:[.list],ttl:1000)
+                if i==0 { first=p }
+            }
+            c.milliseconds=31_000
+            try denied("timed-out UI cannot approve") {
+                _ = try core.approveFromLocalUI(first!)
+            }
+            let newPrompt=try core.beginRequest(sessionID:session,
+                capability:.files,opaqueScope:"fresh_root",
+                operations:[.list],ttl:1000)
+            _ = try core.approveFromLocalUI(newPrompt)
+        }
+
+        // 15: expired in-flight receipts free capacity while staying invalid.
+        do {
+            let x=try Scenario(ttl:1000)
+            var first:FloatdeskNativeConsentResearch.Receipt?
+            for i in 1...256 {
+                let receipt=try x.core.authorize(x.action(seq:UInt64(i)))
+                if i==1 { first=receipt }
+            }
+            try denied("pending receipt exhaustion") {
+                _ = try x.core.authorize(x.action(seq:257))
+            }
+            x.clock.milliseconds=2_000
+            try denied("expired receipt cannot finish") {
+                try x.core.complete(first!)
+            }
+            // A fresh grant on another scope can use freed capacity.
+            let request=try x.core.beginRequest(sessionID:x.session,
+                capability:.files,opaqueScope:"new_root",operations:[.list],ttl:1000)
+            let g=try x.core.approveFromLocalUI(request)
+            let a=FloatdeskNativeConsentResearch.Action(grant:g,
+                sessionID:x.session,viewerLabel:"fixture_viewer",
+                capability:.files,opaqueScope:"new_root",
+                operation:.list,sequence:1)
+            try x.core.complete(x.core.authorize(a))
         }
     }
 }
