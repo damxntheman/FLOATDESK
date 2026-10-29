@@ -1,5 +1,7 @@
 # Milestones — evidence before claims
 
+**M14 detached capability groundwork:** [implementation, trust model, tests and handback](M14-TERRA-IMPLEMENTATION.md). Independently authenticated native owner/viewer authority and all live integration, signed IPC, OS permissions and hardware checks remain future work. Safari PiP remains view-only and unchanged.
+
 **M13 review and safe hardening:** [architecture/security decision, evidence and next gates](M13-ASTRA-REVIEW.md). Native owner authentication, native grant enforcement, signed packaging and physical TCC/PiP validation remain production blockers. No native PiP migration or iPhone UI redesign is included.
 
 ## Permanent product requirements
