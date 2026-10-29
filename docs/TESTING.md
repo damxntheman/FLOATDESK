@@ -154,3 +154,7 @@ macOS CI compiles the AppKit menu, native settings panel code and owner-specific
 ## M12 Mac local integrity and release blocker — device checks deferred
 
 GitHub macOS CI now hashes the selected Node executable and checked-out app code, mutates a backend module and iPhone HTML asset, adds a source file, and ensures each alteration invalidates the previous Mac-owner approval. The Mac Host build and previous M7–M11 CI continue. The ad-hoc development app must **fail** the new Developer ID/hardened-runtime/Gatekeeper production-release check. **Neither the actual physical Mac GUI approval performance nor a signed/notarized build or iPhone PiP has been verified.** [M12 checklist](M12-LOCAL-INTEGRITY.md).
+
+## M15 native consent model — CI only
+
+The new macOS Swift CI job builds `FloatdeskNativeConsentResearch.swift` with a dedicated headless fixture and exercises 13 authorization/revocation/reconnect/expiry cases. Another CI guard checks the core is absent from the live server, browser and existing native Mac helpers. **This does not exercise actual AppKit consent, enrolled phone identity, code signatures, XPC, TCC, privileged input, Files access, or Safari PiP on real devices.** See [M15 gates](M15-NATIVE-CONSENT-FOUNDATION.md).

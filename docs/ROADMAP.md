@@ -1,3 +1,11 @@
+## M15: native Mac consent groundwork — GPT-6 research batch
+
+- [x] Introduce a detached Swift consent state machine independent from Node/WebSocket/OS permissions, with capability-scoped operations, explicit pending local-UI approval, 30-second pending deadline, revocation, expiry, session epochs and generation fencing.
+- [x] Test on GitHub macOS CI via 13 offline scenarios covering replay, stale results, resource exhaustion, viewer/scope substitution, explicit denial, reconnect and **PiP without click authority**.
+- [ ] **Not implemented:** authenticated Mac-owner identity, signed/caller-verified IPC/XPC, independently enrolled iPhone device identity, native UI approval display, real directory FD/input resource binding, service revocation acknowledgment.
+- [ ] Review the capability protocol against actual Swift service boundaries and Apple signing/TCC/XPC requirements before enabling any privileged operation. A future authenticated native authority must use standard platform-supported security mechanisms, not browser/Node tokens as owner proof.
+- [ ] Real MacBook M1/iPhone 16 and macOS permission verification remain deferred by owner request. 8788 Safari/WebRTC PiP and separate 8789 research service stay untouched.
+
 # Milestones — evidence before claims
 
 **M14 detached capability groundwork:** [implementation, trust model, tests and handback](M14-TERRA-IMPLEMENTATION.md). Independently authenticated native owner/viewer authority and all live integration, signed IPC, OS permissions and hardware checks remain future work. Safari PiP remains view-only and unchanged.

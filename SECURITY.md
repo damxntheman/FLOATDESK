@@ -2,6 +2,12 @@
 
 **FLOATDESK v0.1 is an experimental local-only research preview, not suitable for internet exposure or sensitive remote administration.**
 
+## M15 detached native Mac consent research — no live authority yet
+
+`native/macos/FloatdeskNativeConsentResearch.swift` is a **pure, offline Swift reference core**, not a verified Mac owner, authenticated iPhone viewer, XPC service or access-control boundary. The method called `approveFromLocalUI` is a modeled entry point; it has **no actual native UI event, OS credential check or transport caller authentication**. Local enrollment uses fake viewer labels in CI. Crucially, no production Mac menu, Node signaling, browser or native click/Files helper imports the core. It cannot authorize real mouse clicks, list private files, view a screen or grant TCC access.
+
+The core models bounded pending prompts, a 30-second approval deadline, per-capability TTL, exact opaque scopes (not actual directory descriptors), explicit scope revocation, one-use receipts, monotonic-time rollback denial, session suspension/restart fences and independent view-only PiP. The Mac owner and viewer identity proofs, signed process/peer validation, resource binding and trust in locally displayed approvals **remain unsolved**; the current browser/Node approvals remain as documented under M13. Do not wire this core to any privileged operation without an independent native security review and physical validation.
+
 ## M14 detached authorization research
 
 [M14 implementation and threat model](docs/M14-TERRA-IMPLEMENTATION.md) describes an isolated capability ledger and a proposed native owner/viewer authentication direction. The model is not connected to the server, helpers, network, browser or actual Mac permissions. Its identity labels are trusted caller assertions, not authentication, and it cannot protect live operations from a compromised Node process. The existing M13 limitations below remain in force. No new privileges, listener, PTY, file writes or native PiP replacement are enabled.
