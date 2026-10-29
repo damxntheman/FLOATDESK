@@ -180,7 +180,7 @@ Physical testing is deferred, so these remain **NOT RUN**:
 
 M13 source changes are deliberately reviewable without new permissions: one session disposal boundary; unconditional grant revocation on resume; lossless/fail-closed Files frames; independent directory offsets and FD cleanup; exact release signature-field checks. Browser UI, capture and listener configuration are unchanged. Rollback is reverting this PR's code commit; no state migration or installed service is created. Reverting also restores the identified defects, so prefer a corrective follow-up if a regression is found.
 
-Final PR commit hashes, automated results and CI links are recorded below after verification. No hardware, Developer ID signing, notarization, App Sandbox or TCC success is inferred from these checks.
+No hardware, Developer ID signing, notarization, App Sandbox or TCC success is inferred from the checks below.
 
 ### Local verification before PR
 
@@ -189,5 +189,16 @@ Final PR commit hashes, automated results and CI links are recorded below after 
 - Native Files repeated-offset mechanism reproduced with POSIX directory enumeration on Linux; exact Darwin behavior is covered by the expanded macOS fixture. Local Linux cannot compile AppKit or exercise TCC.
 - Independent reviewers inspected session/native source; a separate Apple-research reviewer checked the combined fixes and ADR. No unresolved must-fix issue was reported in that review. This is agent-assisted review, not external security certification.
 - Initial sandbox `npm test` could not open loopback sockets and showed a signaling failure; rerunning with approved test-process permissions produced the complete 71-case pass above. Public source/dependency retrieval initially used the GitHub connector; the final working copy was reconciled to actual Git history and installed `ws@8.18.3` through npm. No reconstructed snapshot commit is in the PR ancestry.
+
+### Published implementation and CI
+
+- [PR #42](https://github.com/damxntheman/FLOATDESK/pull/42), branch `feature/m13-astra-native-architecture`; intentionally left open for review, no merge or release performed.
+- Implementation commit: **`94fa0ea0d37c33ab0215ed3033751eef4ba4712e`**. Base: `5a2759eb6822855ac0c7810c7132b2bd627a2473`.
+- [Implementation CI run 40919121719](https://github.com/damxntheman/FLOATDESK/actions/runs/40919121719) uses PR merge ref **`8c65d56a6b6466bcbd72141806a8f052f83aaa6b`**, combining that implementation and base. The Actions head SHA is the implementation commit; checkout logs identify the merge ref.
+- [Ubuntu Node job 123607242576](https://github.com/damxntheman/FLOATDESK/actions/runs/40919121719/job/123607242576): **success, 71/71 tests**, Node 22; counts verified in its log.
+- [Native Files macOS job 123607242577](https://github.com/damxntheman/FLOATDESK/actions/runs/40919121719/job/123607242577): **success**; production and fixture Swift variants compile; repeated root/nested listings equal the originals; traversal and symlink escape denied; metadata-only fixture passes. This confirms the repaired behavior on Darwin, not interactive NSOpenPanel or TCC.
+- [Mac menu-shell/lifecycle job 123607242204](https://github.com/damxntheman/FLOATDESK/actions/runs/40919121719/job/123607242204): **queued as of 2026-10-29 17:17 UTC**, no steps/log yet; not counted as passing. Required before merge: native menu build/ad-hoc verification, release-negative gate, local lifecycle, configuration/lock, integrity and owner-death smoke checks. Baseline success does not establish this PR's result; inspect the linked run and current PR checks before continuing.
+
+Resume safely with `git fetch origin`, then check out `feature/m13-astra-native-architecture` (or review PR #42 in an isolated checkout), inspect `git log` and the PR's current checks, run `npm install --ignore-scripts --no-audit --no-fund` and `npm test`. The docs-only evidence follow-up does not change the tested implementation. Do not run a release or start/change either service as part of handback. The next production work is M14's owner-authentication/native-authority design; physical checks remain deferred until the owner schedules them.
 
 For GPT-6: fetch current main and this PR; read this review, the owner handoff and implementation plan; verify the reviewed commit and CI again. Finish any PR review feedback without silently merging architecture into runtime. Start M14 with F1/F4/F6's authority and media-lease decisions, preserving all three experiences. When hardware work resumes, record OS/browser versions and individual observed results against the checklist above. Opus remains reserved for later iPhone visual design, after functional/security boundaries are stable.
