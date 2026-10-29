@@ -54,6 +54,42 @@ jobs:
           PY
 
 
+  native-consent-research-macos:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and execute detached native consent authority fixture
+        run: |
+          set -euo pipefail
+          xcrun swiftc -parse-as-library \
+            native/macos/FloatdeskNativeConsentResearch.swift \
+            native/macos/FloatdeskNativeConsentSmoke.swift \
+            -o "$RUNNER_TEMP/floatdesk-native-consent-smoke"
+          "$RUNNER_TEMP/floatdesk-native-consent-smoke"
+      - name: Assert native research authority is not connected to privileged paths
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib
+          forbidden = [
+              pathlib.Path('native/macos/FloatdeskMacHost.swift'),
+              pathlib.Path('src/server.js'),
+              pathlib.Path('src/native-files-broker.js'),
+              pathlib.Path('src/control.js'),
+              pathlib.Path('public/client.js'),
+              pathlib.Path('native/macos/FloatdeskNativeFilesBroker.swift'),
+              pathlib.Path('native/macos/FloatdeskAgent.swift'),
+          ]
+          for path in forbidden:
+              source = path.read_text()
+              assert 'FloatdeskNativeConsentResearch' not in source, str(path)
+          core = pathlib.Path('native/macos/FloatdeskNativeConsentResearch.swift').read_text()
+          for forbidden_symbol in ('NSWorkspace', 'NSOpenPanel', 'CGEvent', 'ScreenCaptureKit', 'NWListener', 'Process()'):
+              assert forbidden_symbol not in core, forbidden_symbol
+          print('M15 native research authority remains disconnected from live permission paths')
+          PY
+
   mac-menu-shell-bundle:
     runs-on: macos-latest
     timeout-minutes: 12

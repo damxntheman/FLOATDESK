@@ -77,7 +77,7 @@ enum FloatdeskNativeConsentSmoke {
                     opaqueScope:p.opaqueScope,operations:p.operations,
                     requestedTTL:p.requestedTTL,approvalDeadline:p.approvalDeadline,
                     sessionEpoch:p.sessionEpoch,revocationEpoch:p.revocationEpoch))
-                .map {_ in}
+
             }
             _ = try core.approveFromLocalUI(p)
             try denied("approval cannot be reused") {
