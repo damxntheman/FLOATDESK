@@ -131,3 +131,42 @@ test('cancel after approval is idempotent and notifies only once',async()=>{
   broker.cancel();
   assert.deepEqual(reasons,['Native Files access revoked.']);
 });
+
+test('UTF-8 names survive arbitrary byte boundaries in native stdout',async()=>{
+  const {child,broker}=make();
+  const selection={...selected(),label:'Café 🎵'};
+  const response={...listing(),entries:[{name:'音楽 🎵.flp',kind:'file'}]};
+  function bytewise(frame) {
+    for (const byte of Buffer.from(JSON.stringify(frame)+'\n')) {
+      child.stdout.emit('data',Buffer.from([byte]));
+    }
+  }
+  bytewise(selection);
+  assert.deepEqual(await broker.promise,{label:selection.label});
+  const pending=broker.list('.');
+  bytewise(response);
+  assert.deepEqual((await pending).entries,response.entries);
+  broker.cancel();
+});
+
+test('malformed UTF-8 is rejected instead of exposing replacement filenames',async()=>{
+  const {child,broker}=make();
+  const frame=Buffer.from(JSON.stringify(selected())+'\n');
+  frame[frame.indexOf('Projects')]=0xff;
+  child.stdout.emit('data',frame);
+  await assert.rejects(broker.promise,/Invalid native Files response/);
+  assert.equal(child.killed,true);
+});
+
+test('incomplete UTF-8 and over-limit frames fail closed',async()=>{
+  const truncated=make({selectionMs:20});
+  truncated.child.stdout.emit('data',Buffer.from([0x7b,0xc3]));
+  truncated.child.stdout.emit('end');
+  await assert.rejects(truncated.broker.promise,/output ended/);
+  assert.equal(truncated.child.killed,true);
+  const oversized=make();
+  oversized.child.stdout.emit('data',Buffer.alloc(32768,0x61));
+  oversized.child.stdout.emit('data',Buffer.from([0xc3]));
+  await assert.rejects(oversized.broker.promise,/output limit/);
+  assert.equal(oversized.child.killed,true);
+});

@@ -61,7 +61,10 @@ export function startNativeFilesBroker({
   catch { throw Error('Mac native Files broker could not start.'); }
   let active=true;
   let ready=false;
-  let buffer='';
+  // Pipes split bytes, not characters. Decode only a complete bounded frame,
+  // and reject invalid UTF-8 instead of silently changing a filename.
+  let buffer=Buffer.alloc(0);
+  const decoder=new TextDecoder('utf-8',{fatal:true});
   let selectionTimer;
   let pending=null;
   let selectedResolve,selectedReject;
@@ -72,6 +75,7 @@ export function startNativeFilesBroker({
   function fail(reason) {
     if (!active) return;
     active=false;
+    buffer=Buffer.alloc(0);
     clearTimeout(selectionTimer);
     if (pending) {
       clearTimeout(pending.timer);
@@ -118,23 +122,25 @@ export function startNativeFilesBroker({
   }
   child.stdout.on('data',chunk=>{
     if (!active) return;
-    buffer+=String(chunk);
-    if (Buffer.byteLength(buffer,'utf8')>MAX_FRAME) {
+    const bytes=Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    if (buffer.length+bytes.length>MAX_FRAME) {
       fail('Native Files broker exceeded output limit.');
       return;
     }
-    while (active && buffer.includes('\n')) {
-      const split=buffer.indexOf('\n');
-      const line=buffer.slice(0,split);
-      buffer=buffer.slice(split+1);
-      if (!line || Buffer.byteLength(line,'utf8')>MAX_FRAME) {
+    buffer=Buffer.concat([buffer,bytes]);
+    while (active && buffer.includes(0x0a)) {
+      const split=buffer.indexOf(0x0a);
+      const line=buffer.subarray(0,split);
+      buffer=buffer.subarray(split+1);
+      if (!line.length) {
         fail('Invalid native Files response.');
         return;
       }
-      try { handle(JSON.parse(line)); }
+      try { handle(JSON.parse(decoder.decode(line))); }
       catch { fail('Invalid native Files response.'); return; }
     }
   });
+  child.stdout.on('end',()=>fail('Native Files broker output ended.'));
   child.stderr.on('data',()=>{}); // drain without leaking local details
   child.on('error',()=>fail('Native Files broker crashed.'));
   child.on('exit',()=>fail('Native Files broker exited.'));

@@ -1,5 +1,7 @@
 # FLOATDESK
 
+**M13 architecture/security review:** [findings, bounded fixes, production decision and GPT-6 handback](docs/M13-ASTRA-REVIEW.md). Native distribution, TCC and physical-device acceptance remain gated; Safari PiP is preserved.
+
 **Your computer, always within reach.** An open-source experiment toward phone-first remote desktop with Picture-in-Picture (PiP), secure quick resumption, and natural touch interaction.
 
 > **Status: trusted-LAN research prototype, not a secure remote-desktop product.**

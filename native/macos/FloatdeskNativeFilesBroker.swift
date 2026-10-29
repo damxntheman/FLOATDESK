@@ -39,7 +39,9 @@ private func entryName(_ entry: UnsafeMutablePointer<dirent>) -> String {
 // Each nested component is opened AT the prior FD with no symlink following.
 private func directoryFD(root: Int32, relative: String) -> Int32? {
     guard let parts = safeComponents(relative), root >= 0 else { return nil }
-    var fd = Darwin.dup(root)
+    // dup(root) shares its directory offset. Opening "." at the approved FD
+    // gives each listing its own open file description, including root lists.
+    var fd = Darwin.openat(root, ".", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
     if fd < 0 { return nil }
     for component in parts {
         let next = Darwin.openat(fd, component, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
@@ -54,7 +56,12 @@ private func enumerate(root: Int32, relative: String) -> [String: Any]? {
     guard let fd = directoryFD(root: root, relative: relative) else { return nil }
     defer { Darwin.close(fd) }
     // fdopendir takes ownership of a DUPLICATE. Keep fd usable until defer.
-    guard let dir = Darwin.fdopendir(Darwin.dup(fd)) else { return nil }
+    let scanFD = Darwin.dup(fd)
+    guard scanFD >= 0 else { return nil }
+    guard let dir = Darwin.fdopendir(scanFD) else {
+        Darwin.close(scanFD) // fdopendir owns the descriptor only on success.
+        return nil
+    }
     defer { Darwin.closedir(dir) }
 
     var entries: [[String: String]] = []
@@ -100,11 +107,18 @@ if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--self-test"
     defer { Darwin.close(root) }
     let valid = enumerate(root: root, relative: ".")
     let safe = enumerate(root: root, relative: "Folder")
+    let repeatedRoot = enumerate(root: root, relative: ".")
+    let repeatedNested = enumerate(root: root, relative: "Folder")
     let rejected = enumerate(root: root, relative: "../etc")
     let rejectedSymlink = enumerate(root: root, relative: "Escape")
+    let repeatStable = valid != nil && safe != nil &&
+        (valid?["entries"] as? [[String:String]]) == (repeatedRoot?["entries"] as? [[String:String]]) &&
+        (safe?["entries"] as? [[String:String]]) == (repeatedNested?["entries"] as? [[String:String]])
     emit(["type":"native-files-self-test","root":valid ?? [:],"nested":safe ?? [:],
+          "repeatedRoot":repeatedRoot ?? [:],"repeatedNested":repeatedNested ?? [:],
+          "repeatStable":repeatStable,
           "traversalDenied":rejected == nil,"symlinkDenied":rejectedSymlink == nil])
-    exit(valid == nil || safe == nil || rejected != nil || rejectedSymlink != nil ? 2 : 0)
+    exit(!repeatStable || rejected != nil || rejectedSymlink != nil ? 2 : 0)
 }
 #endif
 

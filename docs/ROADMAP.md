@@ -1,5 +1,7 @@
 # Milestones — evidence before claims
 
+**M13 review and safe hardening:** [architecture/security decision, evidence and next gates](M13-ASTRA-REVIEW.md). Native owner authentication, native grant enforcement, signed packaging and physical TCC/PiP validation remain production blockers. No native PiP migration or iPhone UI redesign is included.
+
 ## Permanent product requirements
 
 - **Floating, live Picture-in-Picture is core, not a throwaway prototype.** iPhone Mode (mobile Files/Terminal/apps), Desktop Mode, and PiP must coexist. PiP displays the approved Mac stream while other phone apps are foreground; tapping/returning to FLOATDESK restores the authorized viewer without unnecessary re-pairing. Do not promise mouse input inside the system PiP window.
