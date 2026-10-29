@@ -85,6 +85,12 @@ The new [fail-closed Mac release gate](scripts/verify-mac-release.sh) refuses ou
 
 The owner has approved a **separate Astra review** of the production Mac companion: signed helper identity, Screen Recording/Accessibility/TCC and file-scope permissions, service lifetime/XPC, pairing trust boundaries and preservation of browser PiP. Read [the complete M13 handoff](docs/M13-ASTRA-HANDOFF.md) before making any security-critical native changes. This commits the **brief**, not the actual Astra review; no model handoff, production signing or device testing has occurred simply by adding these documents. The current independent HTTPS/PiP port 8788 and Mac-only research port 8789 must remain unaffected.
 
+## M15: independently enforceable native consent — research foundation
+
+A new **detached macOS Swift consent state machine** (`native/macos/FloatdeskNativeConsentResearch.swift`) models native owner-UI approval, session-bound capabilities, TTL, scope revocation, replay protection and stale-completion checks. A separate macOS CI job compiles and runs 15 offline adversarial scenarios. **This is not yet genuine Mac-owner or iPhone-device authentication**: the approved UI is a simulated call in a test fixture; it is not connected to the browser, Node, native helpers, WebRTC or any system permission. See [M15 architecture and gates](docs/M15-NATIVE-CONSENT-FOUNDATION.md).
+
+**Floating Safari PiP remains view-only and unchanged**, with independent Desktop Mode and iPhone Mode. Production Mac signing, device enrollment, secure XPC peer identity, TCC and real-device verification are still required before any native grant can govern a privileged action.
+
 ## Local smoke test (desktop only)
 
 Requirements: Node.js 20+, two modern browsers or tabs.
